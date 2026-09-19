@@ -874,10 +874,7 @@ export function App() {
             langCode={langConfig.defaultVoiceLang}
             nativeLanguage={userProfile?.nativeLanguage || "English"}
             userId={userProfile?.id}
-            practiceSentences={
-              currentTopic?.practiceSentences ||
-              langConfig.defaultSuggestedReplies
-            }
+            practiceSentences={currentTopic?.practiceSentences}
             onTriggerGesture={(g) => setCurrentGesture(g)}
             onSpeakText={(text) => speechCtrl.speak(text, langConfig.defaultVoiceLang)}
           />
