@@ -65,9 +65,21 @@ export interface ChatMessage {
   audioPlayed?: boolean;
 }
 
+export interface PhonemeHeatmapTile {
+  phoneme: string;
+  ipa: string;
+  word: string;
+  clarityScore: number; // 0 to 100
+  intensity: "crystal-clear" | "acceptable" | "muffled" | "distorted";
+  status: "good" | "needs-work" | "accent-tip";
+  frequencyBand?: "low" | "mid" | "high";
+  tip?: string;
+}
+
 export interface PronunciationEvaluation {
   accuracyScore: number;
   pronunciationScore: number;
+  phonemeClarityScore?: number; // Score out of 100 for phoneme clarity
   feedback: string;
   gesture: GestureType;
   phoneticBreakdown: {
@@ -75,7 +87,40 @@ export interface PronunciationEvaluation {
     ipa: string;
     status: "good" | "needs-work" | "accent-tip";
   }[];
+  soundHeatmap?: PhonemeHeatmapTile[];
   encouragement?: string;
+}
+
+export interface GrammarIssueItem {
+  original: string;
+  corrected: string;
+  issueType: "syntax" | "tense" | "agreement" | "preposition" | "spelling" | "nuance";
+  explanation: string;
+}
+
+export interface NuanceVariation {
+  register: "Casual & Colloquial" | "Polite & Conversational" | "Formal & Business" | "Literary & Expressive";
+  sentence: string;
+  explanation: string;
+}
+
+export interface VocabularyUpgrade {
+  originalWord: string;
+  suggestedWord: string;
+  reason: string;
+}
+
+export interface TextAnalysisResult {
+  originalText: string;
+  correctedText: string;
+  isFlawless: boolean;
+  naturalnessScore: number; // 0 to 100
+  formalityLevel: "Casual" | "Neutral" | "Semi-Formal" | "Formal / Business";
+  toneDescription: string;
+  grammarIssues: GrammarIssueItem[];
+  nuanceVariations: NuanceVariation[];
+  vocabularyUpgrades: VocabularyUpgrade[];
+  pedagogicalSummary: string;
 }
 
 export interface LessonTopic {

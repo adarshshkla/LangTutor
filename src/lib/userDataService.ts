@@ -185,6 +185,59 @@ export function createGuestProfile(customName?: string): UserProfile {
   return guestProfile;
 }
 
+// 1.b Get Google Sign-In Redirect Result
+export async function getGoogleRedirectResult(): Promise<UserProfile | null> {
+  const result = await getRedirectResult(auth);
+  if (!result || !result.user) return null;
+
+  const fbUser = result.user;
+  const userDocRef = doc(db, "users", fbUser.uid);
+  const docSnap = await getDoc(userDocRef);
+
+  if (docSnap.exists()) {
+    return docSnap.data() as UserProfile;
+  }
+
+  const newProfile: UserProfile = {
+    id: fbUser.uid,
+    name: fbUser.displayName || "Learner",
+    email: fbUser.email || "",
+    targetLanguage: "Spanish",
+    proficiencyLevel: "Beginner (A1-A2)",
+    learningGoal: "Daily Conversation & Socializing",
+    dailyGoalMinutes: 15,
+    nativeLanguage: "English",
+    isOnboarded: false,
+    avatarIcon: fbUser.photoURL || undefined,
+    createdAt: new Date().toISOString(),
+  };
+
+  await setDoc(userDocRef, {
+    ...newProfile,
+    updatedAt: serverTimestamp(),
+  });
+
+  return newProfile;
+}
+
+// 1.c Instant Guest Mode (Local Dev / No Auth)
+export function signInAsGuest(): UserProfile {
+  const dummyId = "guest-" + Date.now();
+  return {
+    id: dummyId,
+    name: "Guest Learner",
+    email: "guest@local.dev",
+    targetLanguage: "Spanish",
+    proficiencyLevel: "Beginner (A1-A2)",
+    learningGoal: "Daily Conversation & Socializing",
+    dailyGoalMinutes: 15,
+    nativeLanguage: "English",
+    isOnboarded: false, // will prompt them to pick language if new
+    createdAt: new Date().toISOString(),
+  };
+}
+
+
 // 2. Email / Password Sign In
 export async function signInWithEmail(email: string, pass: string): Promise<UserProfile> {
   const cred = await signInWithEmailAndPassword(auth, email, pass);

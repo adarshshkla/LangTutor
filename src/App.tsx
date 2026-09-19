@@ -829,12 +829,21 @@ export function App() {
                   suggestedReplies={suggestedReplies}
                   langCode={langConfig.defaultVoiceLang}
                   speechRate={speechRate}
+                  targetLanguage={targetLanguage}
+                  nativeLanguage={userProfile?.nativeLanguage || "English"}
                   onSendMessage={handleSendMessage}
                   onReplayAudio={(msg) => speakWithAvatar(msg.text, msg.gesture || "explaining")}
                   onStartListening={handleStartListening}
                   onStopListening={handleStopListening}
                   onSelectGesture={setCurrentGesture}
                   onRateChange={setSpeechRate}
+                  onSendToSmartboard={(notes, spotlightWord) => {
+                    setBoardNotes(notes);
+                    if (spotlightWord) {
+                      setActiveWord(spotlightWord);
+                    }
+                  }}
+                  onSpeakText={(text) => speakWithAvatar(text, "explaining")}
                   interimTranscript={interimTranscript}
                 />
               </div>
