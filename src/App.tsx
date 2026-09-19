@@ -15,6 +15,7 @@ import {
   User,
   ChevronDown,
   Trash2,
+  Layers,
 } from "lucide-react";
 import { Dashboard } from "./features/dashboard";
 import { TutorCanvas } from "./features/avatar";
@@ -23,6 +24,7 @@ import { SmartWhiteboard } from "./features/smartboard";
 import { PronunciationSuite } from "./features/pronunciation";
 import { StepByStepCurriculum } from "./features/curriculum";
 import { AuthOnboardingModal } from "./features/auth";
+import { VocabGrammarChapters } from "./features/chapters";
 import { AudioDiagnosticsModal } from "./components/AudioDiagnosticsModal";
 import { speechCtrl } from "./components/SpeechController";
 import {
@@ -51,6 +53,7 @@ import {
   signOutUser,
   deleteCurrentUserData,
   subscribeUserCurriculumProgress,
+  checkRedirectSignInResult,
 } from "./lib/userDataService";
 
 export function App() {
@@ -77,6 +80,16 @@ export function App() {
 
   // Synchronize with Firebase Auth State & load Firestore profile
   useEffect(() => {
+    // Check if user just completed a Google OAuth redirect
+    checkRedirectSignInResult().then((redirectProfile) => {
+      if (redirectProfile) {
+        setUserProfile(redirectProfile);
+        setTargetLanguage(redirectProfile.targetLanguage);
+        setProficiencyLevel(redirectProfile.proficiencyLevel);
+        localStorage.setItem("maestro_user_profile", JSON.stringify(redirectProfile));
+      }
+    });
+
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       if (fbUser) {
         try {
@@ -97,13 +110,15 @@ export function App() {
 
   // Navigation & Preferences - Starts at dashboard as requested by user
   const [targetLanguage, setTargetLanguage] = useState<TargetLanguage>(
-    userProfile?.targetLanguage || "Spanish"
+    userProfile?.targetLanguage || "English"
   );
   const [proficiencyLevel, setProficiencyLevel] = useState<ProficiencyLevel>(
     userProfile?.proficiencyLevel || "Beginner (A1-A2)"
   );
-  const [activeTab, setActiveTab] = useState<"dashboard" | "stage" | "pronunciation" | "curriculum">("dashboard");
-  const [selectedTopicId, setSelectedTopicId] = useState<string>("es-cafe");
+  const [activeTab, setActiveTab] = useState<
+    "dashboard" | "stage" | "pronunciation" | "curriculum" | "chapters"
+  >("dashboard");
+  const [selectedTopicId, setSelectedTopicId] = useState<string>("en-small-talk");
   const [isDiagnosticsOpen, setIsDiagnosticsOpen] = useState<boolean>(false);
   const [curriculumProgress, setCurriculumProgress] = useState<TeachingModuleProgress | null>(null);
   const [audioErrorToast, setAudioErrorToast] = useState<string | null>(null);
@@ -134,35 +149,35 @@ export function App() {
 
   // Classroom Smartboard State
   const [boardNotes, setBoardNotes] = useState<string[]>([
-    "Welcome to AI Language Tutor!",
-    "Practice speaking, listening & grammar in real time.",
+    "Welcome to Maestro AI English Tutor!",
+    "Master vocabulary, grammar chapters & spoken conversation.",
     "Click the microphone or choose a suggested reply.",
   ]);
-  const [activeWord, setActiveWord] = useState<string>("¡Bienvenido!");
-  const [activePhonetic, setActivePhonetic] = useState<string>("/bjen.beˈni.ðo/");
+  const [activeWord, setActiveWord] = useState<string>("Pleasure");
+  const [activePhonetic, setActivePhonetic] = useState<string>("/ˈpleʒ.ər/");
   const [vocabularySpotlight, setVocabularySpotlight] = useState<VocabularyItem[]>([
     {
-      word: "Bienvenido",
-      phonetic: "/bjen.beˈni.ðo/",
-      meaning: "Welcome",
-      example: "Bienvenido a tu clase de idiomas.",
+      word: "Pleasure",
+      phonetic: "/ˈpleʒ.ər/",
+      meaning: "A feeling of happy satisfaction; polite greeting",
+      example: "It is a true pleasure to meet you.",
     },
     {
-      word: "Conversación",
-      phonetic: "/kom.beɾ.saˈsjon/",
-      meaning: "Conversation",
-      example: "Practicamos la conversación todos los días.",
+      word: "Appreciate",
+      phonetic: "/əˈpriː.ʃi.eɪt/",
+      meaning: "To recognize value or express sincere gratitude",
+      example: "I deeply appreciate your guidance.",
     },
   ]);
   const [grammarFeedback, setGrammarFeedback] = useState<GrammarFeedback | null>(null);
   const [pronunciationTip, setPronunciationTip] = useState<string>(
-    "Keep vowels crisp, short, and pure. Watch the 2D mouth anatomy visualizer!"
+    "Keep vowels clear and unreduced. Watch the 2D mouth anatomy visualizer!"
   );
 
   // Chat conversation
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [suggestedReplies, setSuggestedReplies] = useState<string[]>(
-    LANGUAGE_CONFIGS[userProfile?.targetLanguage || "Spanish"].defaultSuggestedReplies
+    LANGUAGE_CONFIGS[userProfile?.targetLanguage || "English"].defaultSuggestedReplies
   );
 
   // Automatically update suggested replies whenever target language changes
@@ -642,6 +657,19 @@ export function App() {
             <BookOpen className="w-3.5 h-3.5" />
             <span>Curriculum & Scenarios</span>
           </button>
+
+          <button
+            id="tab-chapters"
+            onClick={() => setActiveTab("chapters")}
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl font-semibold transition-all ${
+              activeTab === "chapters"
+                ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
+                : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>Vocab & Grammar Chapters</span>
+          </button>
         </div>
 
         {/* Quick Gesture Trigger Testing Toolbar (Stage tab only) */}
@@ -722,14 +750,19 @@ export function App() {
             }}
             onTriggerQuickDemo={(gesture) => {
               setCurrentGesture(gesture as GestureType);
-              speakWithAvatar(
-                gesture === "praising"
+              const demoText =
+                targetLanguage === "English"
+                  ? gesture === "praising"
+                    ? "Excellent work! Keep up the brilliant effort."
+                    : gesture === "pointing"
+                    ? "Notice this key pronunciation tip on the board."
+                    : "Hello! I am Maestro, your English tutor."
+                  : gesture === "praising"
                   ? "¡Excelente trabajo!"
                   : gesture === "pointing"
                   ? "Observa este detalle en la pizarra."
-                  : "¡Hola! Estoy listo para ayudarte.",
-                gesture as GestureType
-              );
+                  : "¡Hola! Estoy listo para ayudarte.";
+              speakWithAvatar(demoText, gesture as GestureType);
             }}
           />
         </main>
@@ -861,6 +894,53 @@ export function App() {
         </main>
       )}
 
+      {/* Dedicated Chapters of Vocabulary & Grammar Masterclasses */}
+      {activeTab === "chapters" && (
+        <main className="flex-1 overflow-y-auto p-4 md:p-6">
+          <div className="max-w-6xl mx-auto">
+            <VocabGrammarChapters
+              targetLanguage={targetLanguage}
+              userId={userProfile?.id}
+              onSendToSmartboard={(item) => {
+                setActiveWord(item.word);
+                setActivePhonetic(item.phonetic);
+                setVocabularySpotlight((prev) => [
+                  item,
+                  ...prev.filter((i) => i.word !== item.word).slice(0, 4),
+                ]);
+                setBoardNotes([
+                  `Spotlight: ${item.word} (${item.phonetic})`,
+                  `Meaning: ${item.meaning}`,
+                  `Example: "${item.example}"`,
+                ]);
+              }}
+              onPracticeWithTutor={(prompt, title) => {
+                setActiveTab("stage");
+                if (title) {
+                  setBoardNotes([
+                    `Practice: ${title}`,
+                    `Interactive spoken dialogue with Maestro.`,
+                    `Click mic to respond.`,
+                  ]);
+                }
+                handleSendMessage(prompt);
+              }}
+              onSelectTopic={(topicId, starterPrompt, title) => {
+                setSelectedTopicId(topicId);
+                setActiveTab("stage");
+                if (title) {
+                  setBoardNotes([
+                    `Topic: ${title}`,
+                    `Engage in interactive dialogue with your 3D tutor.`,
+                  ]);
+                }
+                handleSendMessage(starterPrompt);
+              }}
+            />
+          </div>
+        </main>
+      )}
+
       {/* Audio & Microphone Self-Test Diagnostic Modal */}
       <AudioDiagnosticsModal
         isOpen={isDiagnosticsOpen}
@@ -889,11 +969,12 @@ export function App() {
 
           // Greet user in their chosen language with avatar gesture & voice
           const cfg = LANGUAGE_CONFIGS[newProfile.targetLanguage];
+          const greetingText =
+            newProfile.targetLanguage === "English"
+              ? `Hello ${newProfile.name}! Welcome to your English learning journey. ${cfg.sampleStarter}`
+              : `¡Hola ${newProfile.name}! ${cfg.sampleStarter}`;
           setTimeout(() => {
-            speakWithAvatar(
-              `¡Hola ${newProfile.name}! ${cfg.sampleStarter}`,
-              "welcoming"
-            );
+            speakWithAvatar(greetingText, "welcoming");
           }, 600);
         }}
       />

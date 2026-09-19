@@ -52,6 +52,34 @@ Open your browser at `http://localhost:3000`.
 
 ---
 
+## 🔑 Google Authentication when Running Locally
+
+If Google Sign-In is not opening or failing when you run the downloaded project locally:
+
+### 1. The `localhost` vs `127.0.0.1` Rule (Most Common Cause)
+- Firebase Authentication authorizes `localhost` by default.
+- If you access the application at `http://127.0.0.1:3000` or an internal network IP (e.g., `192.168.x.x`), Firebase blocks Google Sign-In with an `auth/unauthorized-domain` error.
+- **Fix**: Open your browser at **`http://localhost:3000`** (using the word `localhost` instead of `127.0.0.1`).
+- The in-app login modal will automatically detect `127.0.0.1` and provide a 1-click button to switch to `localhost:3000`.
+
+### 2. Instant Guest Mode (Zero-Config Local Development)
+- If you or your teammates want to work on features without signing into Google or configuring OAuth consent screens:
+- Click **"Continue as Guest (Instant Local Dev Mode)"** or **"Instant Guest Mode"** in the login modal.
+- This immediately unlocks the 3D tutor, speech recognition, pronunciation studio, smart whiteboard, and full curriculum.
+
+### 3. Browser Popup Blockers
+- If your browser blocks the Google OAuth popup window, click **"Popup blocked? Try Redirect"** right below the Google button.
+- The app supports both Popup and Redirect OAuth authentication flows seamlessly.
+
+### 4. Adding Custom Local Domains in Firebase (Optional)
+If your team runs the app on custom domains or network IPs:
+1. Open the [Firebase Console](https://console.firebase.google.com/).
+2. Select your project (`ai-studio-ai3dlanguagelear-cf491331-e8d8-45c1-aeec-7c20f4adec52`).
+3. Go to **Authentication** > **Settings** > **Authorized Domains**.
+4. Click **Add Domain** and add your custom host or IP.
+
+---
+
 ## 🧩 Modular Architecture for Team Collaboration
 
 Each major feature is isolated in its own dedicated directory under `src/features/` with clean interface boundaries. Teammates can work in parallel on different features without causing merge conflicts:

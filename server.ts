@@ -42,12 +42,12 @@ async function startServer() {
     try {
       const {
         message,
-        targetLanguage = "Spanish",
+        targetLanguage = "English",
         level = "Beginner (A1-A2)",
         topic = "General Conversation",
         learningGoal = "Daily Conversation & Socializing",
         studentName = "Student",
-        nativeLanguage = "English",
+        nativeLanguage = "Spanish",
         history = [],
       } = req.body;
 
@@ -58,10 +58,15 @@ async function startServer() {
       const ai = getAI();
 
       if (!ai) {
+        const isTargetEnglish = targetLanguage.toLowerCase() === "english";
         // High quality offline fallback if no API key is set yet
         return res.json({
-          spokenText: `¡Hola ${studentName}! I am your 3D language tutor for ${targetLanguage}. Let's work towards your goal of ${learningGoal}! You said: "${message}".`,
-          translation: `Hello ${studentName}! I am your 3D language tutor for ${targetLanguage}. Let's work towards your goal of ${learningGoal}!`,
+          spokenText: isTargetEnglish
+            ? `Hello ${studentName}! I am your 3D language tutor for ${targetLanguage}. Let's work towards your goal of ${learningGoal}! You said: "${message}".`
+            : `¡Hola ${studentName}! I am your 3D language tutor for ${targetLanguage}. Let's work towards your goal of ${learningGoal}! You said: "${message}".`,
+          translation: isTargetEnglish
+            ? `¡Hola ${studentName}! Soy tu tutor 3D de inglés. ¡Trabajemos en tu meta de ${learningGoal}!`
+            : `Hello ${studentName}! I am your 3D language tutor for ${targetLanguage}. Let's work towards your goal of ${learningGoal}!`,
           gesture: "welcoming",
           boardNotes: [
             `Student: ${studentName}`,
@@ -70,20 +75,37 @@ async function startServer() {
             `Proficiency: ${level}`,
           ],
           grammarFeedback: null,
-          vocabularySpotlight: [
-            {
-              word: "Práctica",
-              phonetic: "/ˈpɾak.ti.ka/",
-              meaning: "Practice",
-              example: "La práctica hace al maestro.",
-            },
-          ],
-          pronunciationTip: "Keep vowels clear and unreduced.",
-          suggestedReplies: [
-            `¿Cómo estás?`,
-            `Me gustaría aprender vocabulario.`,
-            `¿Puedes explicarme la gramática?`,
-          ],
+          vocabularySpotlight: isTargetEnglish
+            ? [
+                {
+                  word: "Practice",
+                  phonetic: "/ˈpræk.tɪs/",
+                  meaning: "Repeated exercise in an activity or skill to acquire proficiency",
+                  example: "Practice makes perfect in language learning.",
+                },
+              ]
+            : [
+                {
+                  word: "Práctica",
+                  phonetic: "/ˈpɾak.ti.ka/",
+                  meaning: "Practice",
+                  example: "La práctica hace al maestro.",
+                },
+              ],
+          pronunciationTip: isTargetEnglish
+            ? "Keep your vowel length clear and practice the voiced and unvoiced 'th' sounds."
+            : "Keep vowels clear and unreduced.",
+          suggestedReplies: isTargetEnglish
+            ? [
+                `Hello! How are you doing today?`,
+                `I would like to practice vocabulary chapters.`,
+                `Could you please explain this grammar rule?`,
+              ]
+            : [
+                `¿Cómo estás?`,
+                `Me gustaría aprender vocabulario.`,
+                `¿Puedes explicarme la gramática?`,
+              ],
         });
       }
 
@@ -202,7 +224,7 @@ Respond strictly with valid JSON matching the requested schema.`;
   // Pronunciation & speech evaluation endpoint
   app.post("/api/tutor/evaluate-speech", async (req, res) => {
     try {
-      const { expectedText, transcribedText, targetLanguage = "Spanish" } = req.body;
+      const { expectedText, transcribedText, targetLanguage = "English" } = req.body;
 
       const ai = getAI();
       if (!ai) {
