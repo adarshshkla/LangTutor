@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Sparkles,
   ArrowRight,
@@ -21,7 +21,15 @@ import {
 } from "lucide-react";
 import { TargetLanguage, ProficiencyLevel, LearningGoal, UserProfile } from "../types";
 import { LANGUAGE_CONFIGS } from "./LessonCurriculum";
-import { signInWithGoogle, signInWithEmail, signUpWithEmail, saveUserProfile } from "../lib/userDataService";
+import { 
+  signInWithGoogle, 
+  signInWithEmail, 
+  signUpWithEmail, 
+  saveUserProfile,
+  signInWithGoogleRedirect,
+  getGoogleRedirectResult,
+  signInAsGuest
+} from "../lib/userDataService";
 
 interface AuthOnboardingModalProps {
   isOpen: boolean;
@@ -45,6 +53,48 @@ export const AuthOnboardingModal: React.FC<AuthOnboardingModalProps> = ({
   const [step, setStep] = useState<number>(forcedStep || 1);
   const [loading, setLoading] = useState<boolean>(false);
   const [authError, setAuthError] = useState<string | null>(null);
+
+  const [isIPAddress, setIsIPAddress] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
+
+  useEffect(() => {
+    // 1. Domain Check
+    if (typeof window !== "undefined") {
+      if (window.location.hostname === "127.0.0.1" || window.location.hostname.match(/^\d+\.\d+\.\d+\.\d+$/)) {
+        setIsIPAddress(true);
+      }
+    }
+
+    // 2. Check for Redirect Result
+    const checkRedirect = async () => {
+      try {
+        setLoading(true);
+        const profile = await getGoogleRedirectResult();
+        if (profile) {
+          setName(profile.name);
+          setEmail(profile.email);
+          setTargetLanguage(profile.targetLanguage);
+          setProficiencyLevel(profile.proficiencyLevel);
+          setLearningGoal(profile.learningGoal);
+          setDailyMinutes(profile.dailyGoalMinutes);
+          setNativeLanguage(profile.nativeLanguage);
+          
+          if (!profile.isOnboarded) {
+            setStep(2);
+          } else {
+            onComplete(profile);
+          }
+        }
+      } catch (err: any) {
+        console.error("Redirect auth error:", err);
+        setAuthError(err.message || "Failed to sign in with Google Redirect");
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    checkRedirect();
+  }, [onComplete]);
 
   // Form State
   const [name, setName] = useState(currentUser?.name || "");
@@ -89,10 +139,37 @@ export const AuthOnboardingModal: React.FC<AuthOnboardingModalProps> = ({
       }
     } catch (err: any) {
       console.error("Google sign in error:", err);
-      setAuthError(err.message || "Failed to sign in with Google");
+      if (err.code === "auth/unauthorized-domain") {
+        setAuthError("Domain not authorized. Are you using 127.0.0.1 instead of localhost?");
+      } else if (err.code === "auth/popup-blocked" || err.code === "auth/popup-closed-by-user") {
+        setAuthError("Popup blocked or closed. Please try the 'Redirect' method below.");
+      } else {
+        setAuthError(err.message || "Failed to sign in with Google");
+      }
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGoogleRedirect = async () => {
+    setLoading(true);
+    setIsRedirecting(true);
+    setAuthError(null);
+    try {
+      await signInWithGoogleRedirect();
+    } catch (err: any) {
+      console.error("Google redirect init error:", err);
+      setLoading(false);
+      setIsRedirecting(false);
+      setAuthError(err.message || "Failed to initialize redirect");
+    }
+  };
+
+  const handleGuestMode = () => {
+    const profile = signInAsGuest();
+    setName(profile.name);
+    setEmail(profile.email);
+    setStep(2); // proceed to onboarding
   };
 
   const handleAuthSubmit = async (e: React.FormEvent) => {
@@ -357,6 +434,28 @@ export const AuthOnboardingModal: React.FC<AuthOnboardingModalProps> = ({
                 </div>
               )}
 
+              {/* IP Address Warning Banner */}
+              {isIPAddress && (
+                <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 flex flex-col gap-2">
+                  <div className="flex items-center gap-2 text-amber-400 font-bold text-xs">
+                    <AlertCircle className="w-4 h-4" />
+                    <span>Using 127.0.0.1?</span>
+                  </div>
+                  <p className="text-[11px] text-amber-200/80 leading-relaxed">
+                    Firebase Authentication requires <strong>localhost</strong> by default. Google Sign-In will fail if you continue on 127.0.0.1.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      window.location.hostname = "localhost";
+                    }}
+                    className="w-full mt-1 py-2 bg-amber-500 hover:bg-amber-400 text-amber-950 font-bold text-xs rounded-lg transition-colors cursor-pointer"
+                  >
+                    Switch to localhost:3000
+                  </button>
+                </div>
+              )}
+
               {/* 1-Click Google Sign In */}
               <div>
                 <button
@@ -392,6 +491,24 @@ export const AuthOnboardingModal: React.FC<AuthOnboardingModalProps> = ({
                     {authMode === "signup" ? "Sign up with Google" : "Sign in with Google"}
                   </span>
                 </button>
+
+                <div className="flex gap-2 mt-2">
+                  <button
+                    type="button"
+                    disabled={loading || isRedirecting}
+                    onClick={handleGoogleRedirect}
+                    className="flex-1 py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[11px] font-medium transition-colors border border-slate-700 cursor-pointer disabled:opacity-50"
+                  >
+                    {isRedirecting ? "Redirecting..." : "Popup blocked? Try Redirect"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleGuestMode}
+                    className="flex-1 py-2 px-3 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg text-[11px] font-medium transition-colors border border-emerald-500/20 cursor-pointer"
+                  >
+                    Continue as Guest
+                  </button>
+                </div>
 
                 <div className="relative my-4">
                   <div className="absolute inset-0 flex items-center">

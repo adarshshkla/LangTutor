@@ -87,3 +87,20 @@ All learner progress is persistently stored in Google Cloud Firestore:
 - **`users/{userId}/curriculumProgress/{targetLanguage}`**: Stores completed step IDs, current module, current lesson title, progress percentage, and timestamp so users can always **Resume Where They Left Off**.
 - **`users/{userId}/conversations`**: History of conversational turns with the 3D tutor.
 - **`users/{userId}/pronunciationAttempts`**: Historical audio recordings and pronunciation accuracy scores.
+
+---
+
+## 🔒 Local Development & Firebase Authentication
+
+If you are running the project locally and having trouble signing in with Google, this is a common issue with Firebase Auth in local development environments.
+
+### Why Google Auth Fails Locally
+1. **The `localhost` vs `127.0.0.1` Rule**: Firebase Authentication authorizes the domain name `localhost` by default. If your terminal or browser opened the app using `http://127.0.0.1:3000` or an internal network IP (e.g., `192.168.x.x`), Firebase rejects the authentication request with an `auth/unauthorized-domain` error.
+2. **Browser Popup Blockers**: Browsers like Safari, Edge, or Firefox often block secondary popup windows spawned on local development ports.
+3. **Third-Party Cookie / Privacy Shields**: Browsers like Brave or privacy extensions block the Firebase authentication cross-origin cookie handler.
+
+### Built-In Solutions
+- **Automatic Domain Detection**: The app detects if you are using `127.0.0.1` and displays a 1-click button to automatically switch your browser to `localhost:3000`.
+- **Redirect Flow Fallback**: If popups are blocked, click the **"Popup blocked? Try Redirect"** button to use `signInWithRedirect` instead of `signInWithPopup`.
+- **Instant Guest / Local Dev Mode**: Click **"Continue as Guest"** to completely bypass Firebase Auth and create a local dummy profile. This is perfect for teammates who want to instantly test the 3D avatar, speech evaluation, and curriculum without configuring Google Cloud OAuth consent screens.
+
