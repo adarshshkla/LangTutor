@@ -1,6 +1,7 @@
 import {
   doc,
   getDoc,
+  getDocFromServer,
   setDoc,
   deleteDoc,
   collection,
@@ -15,6 +16,8 @@ import {
 } from "firebase/firestore";
 import {
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   updateProfile,
@@ -22,8 +25,6 @@ import {
   signOut,
   onAuthStateChanged,
   User as FirebaseUser,
-  signInWithRedirect,
-  getRedirectResult,
 } from "firebase/auth";
 import { auth, db, googleProvider } from "./firebase";
 import {
@@ -44,99 +45,145 @@ export interface UserStats {
   lastActiveDate: string;
 }
 
-// 1. Google Sign-In
+// Test Firestore connection on boot per Firebase specification
+async function testConnection() {
+  try {
+    await getDocFromServer(doc(db, "test", "connection"));
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("the client is offline")) {
+      console.error("Please check your Firebase configuration.");
+    }
+  }
+}
+if (typeof window !== "undefined") {
+  testConnection();
+}
+
+// 1. Google Sign-In with Popup
 export async function signInWithGoogle(): Promise<UserProfile> {
   const result = await signInWithPopup(auth, googleProvider);
   const fbUser = result.user;
   
   // Check if profile exists in Firestore
-  const userDocRef = doc(db, "users", fbUser.uid);
-  const docSnap = await getDoc(userDocRef);
+  try {
+    const userDocRef = doc(db, "users", fbUser.uid);
+    const docSnap = await getDoc(userDocRef);
 
-  if (docSnap.exists()) {
-    return docSnap.data() as UserProfile;
+    if (docSnap.exists()) {
+      return docSnap.data() as UserProfile;
+    }
+
+    // Create initial profile
+    const newProfile: UserProfile = {
+      id: fbUser.uid,
+      name: fbUser.displayName || "Learner",
+      email: fbUser.email || "",
+      targetLanguage: "English",
+      proficiencyLevel: "Beginner (A1-A2)",
+      learningGoal: "Daily Conversation & Socializing",
+      dailyGoalMinutes: 15,
+      nativeLanguage: "Spanish",
+      isOnboarded: false, // will prompt them to pick language if new
+      avatarIcon: fbUser.photoURL || undefined,
+      createdAt: new Date().toISOString(),
+    };
+
+    await setDoc(userDocRef, {
+      ...newProfile,
+      updatedAt: serverTimestamp(),
+    });
+
+    return newProfile;
+  } catch (dbErr) {
+    console.warn("Firestore profile fetch fallback:", dbErr);
+    return {
+      id: fbUser.uid,
+      name: fbUser.displayName || "Learner",
+      email: fbUser.email || "",
+      targetLanguage: "English",
+      proficiencyLevel: "Beginner (A1-A2)",
+      learningGoal: "Daily Conversation & Socializing",
+      dailyGoalMinutes: 15,
+      nativeLanguage: "Spanish",
+      isOnboarded: true,
+      avatarIcon: fbUser.photoURL || undefined,
+      createdAt: new Date().toISOString(),
+    };
   }
-
-  // Create initial profile
-  const newProfile: UserProfile = {
-    id: fbUser.uid,
-    name: fbUser.displayName || "Learner",
-    email: fbUser.email || "",
-    targetLanguage: "Spanish",
-    proficiencyLevel: "Beginner (A1-A2)",
-    learningGoal: "Daily Conversation & Socializing",
-    dailyGoalMinutes: 15,
-    nativeLanguage: "English",
-    isOnboarded: false, // will prompt them to pick language if new
-    avatarIcon: fbUser.photoURL || undefined,
-    createdAt: new Date().toISOString(),
-  };
-
-  await setDoc(userDocRef, {
-    ...newProfile,
-    updatedAt: serverTimestamp(),
-  });
-
-  return newProfile;
 }
 
-// 1.a Google Sign-In with Redirect (Fallback)
+// 1b. Google Sign-In with Redirect (for popup-blocked or strict browser environments)
 export async function signInWithGoogleRedirect(): Promise<void> {
   await signInWithRedirect(auth, googleProvider);
 }
 
-// 1.b Get Google Sign-In Redirect Result
-export async function getGoogleRedirectResult(): Promise<UserProfile | null> {
-  const result = await getRedirectResult(auth);
-  if (!result || !result.user) return null;
-
-  const fbUser = result.user;
-  const userDocRef = doc(db, "users", fbUser.uid);
-  const docSnap = await getDoc(userDocRef);
-
-  if (docSnap.exists()) {
-    return docSnap.data() as UserProfile;
+// 1c. Check Redirect Sign-In Result on mount
+export async function checkRedirectSignInResult(): Promise<UserProfile | null> {
+  try {
+    const result = await getRedirectResult(auth);
+    if (result && result.user) {
+      const fbUser = result.user;
+      try {
+        const userDocRef = doc(db, "users", fbUser.uid);
+        const docSnap = await getDoc(userDocRef);
+        if (docSnap.exists()) {
+          return docSnap.data() as UserProfile;
+        }
+        const newProfile: UserProfile = {
+          id: fbUser.uid,
+          name: fbUser.displayName || "Learner",
+          email: fbUser.email || "",
+          targetLanguage: "English",
+          proficiencyLevel: "Beginner (A1-A2)",
+          learningGoal: "Daily Conversation & Socializing",
+          dailyGoalMinutes: 15,
+          nativeLanguage: "Spanish",
+          isOnboarded: false,
+          avatarIcon: fbUser.photoURL || undefined,
+          createdAt: new Date().toISOString(),
+        };
+        await setDoc(userDocRef, { ...newProfile, updatedAt: serverTimestamp() });
+        return newProfile;
+      } catch {
+        return {
+          id: fbUser.uid,
+          name: fbUser.displayName || "Learner",
+          email: fbUser.email || "",
+          targetLanguage: "English",
+          proficiencyLevel: "Beginner (A1-A2)",
+          learningGoal: "Daily Conversation & Socializing",
+          dailyGoalMinutes: 15,
+          nativeLanguage: "Spanish",
+          isOnboarded: true,
+          avatarIcon: fbUser.photoURL || undefined,
+          createdAt: new Date().toISOString(),
+        };
+      }
+    }
+  } catch (err) {
+    console.warn("Error checking redirect auth result:", err);
   }
-
-  const newProfile: UserProfile = {
-    id: fbUser.uid,
-    name: fbUser.displayName || "Learner",
-    email: fbUser.email || "",
-    targetLanguage: "Spanish",
-    proficiencyLevel: "Beginner (A1-A2)",
-    learningGoal: "Daily Conversation & Socializing",
-    dailyGoalMinutes: 15,
-    nativeLanguage: "English",
-    isOnboarded: false,
-    avatarIcon: fbUser.photoURL || undefined,
-    createdAt: new Date().toISOString(),
-  };
-
-  await setDoc(userDocRef, {
-    ...newProfile,
-    updatedAt: serverTimestamp(),
-  });
-
-  return newProfile;
+  return null;
 }
 
-// 1.c Instant Guest Mode (Local Dev / No Auth)
-export function signInAsGuest(): UserProfile {
-  const dummyId = "guest-" + Date.now();
-  return {
-    id: dummyId,
-    name: "Guest Learner",
+// 1d. Instant Guest / Demo Profile (Instant local access without OAuth barriers)
+export function createGuestProfile(customName?: string): UserProfile {
+  const guestId = "guest-" + Date.now();
+  const guestProfile: UserProfile = {
+    id: guestId,
+    name: customName || "Local Learner",
     email: "guest@local.dev",
-    targetLanguage: "Spanish",
+    targetLanguage: "English",
     proficiencyLevel: "Beginner (A1-A2)",
     learningGoal: "Daily Conversation & Socializing",
     dailyGoalMinutes: 15,
-    nativeLanguage: "English",
-    isOnboarded: false, // will prompt them to pick language if new
+    nativeLanguage: "Spanish",
+    isOnboarded: true,
     createdAt: new Date().toISOString(),
   };
+  localStorage.setItem("maestro_user_profile", JSON.stringify(guestProfile));
+  return guestProfile;
 }
-
 
 // 2. Email / Password Sign In
 export async function signInWithEmail(email: string, pass: string): Promise<UserProfile> {
@@ -154,11 +201,11 @@ export async function signInWithEmail(email: string, pass: string): Promise<User
     id: fbUser.uid,
     name: fbUser.displayName || email.split("@")[0],
     email: fbUser.email || email,
-    targetLanguage: "Spanish",
+    targetLanguage: "English",
     proficiencyLevel: "Beginner (A1-A2)",
     learningGoal: "Daily Conversation & Socializing",
     dailyGoalMinutes: 15,
-    nativeLanguage: "English",
+    nativeLanguage: "Spanish",
     isOnboarded: true,
     createdAt: new Date().toISOString(),
   };
@@ -189,11 +236,11 @@ export async function signUpWithEmail(
     id: fbUser.uid,
     name: name || "Learner",
     email: fbUser.email || email,
-    targetLanguage: intake?.targetLanguage || "Spanish",
+    targetLanguage: intake?.targetLanguage || "English",
     proficiencyLevel: intake?.proficiencyLevel || "Beginner (A1-A2)",
     learningGoal: intake?.learningGoal || "Daily Conversation & Socializing",
     dailyGoalMinutes: intake?.dailyGoalMinutes || 15,
-    nativeLanguage: intake?.nativeLanguage || "English",
+    nativeLanguage: intake?.nativeLanguage || "Spanish",
     isOnboarded: Boolean(intake?.isOnboarded),
     createdAt: new Date().toISOString(),
   };

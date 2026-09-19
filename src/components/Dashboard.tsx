@@ -13,6 +13,7 @@ import {
   Zap,
   Play,
   RotateCcw,
+  Layers,
 } from "lucide-react";
 import { TargetLanguage, ProficiencyLevel, LessonTopic, UserProfile, TeachingModuleProgress } from "../types";
 import { LANGUAGE_CONFIGS, LESSON_TOPICS } from "./LessonCurriculum";
@@ -25,7 +26,7 @@ interface DashboardProps {
   onOpenOnboarding: (step?: 1 | 2 | 3) => void;
   onSelectLanguage: (lang: TargetLanguage) => void;
   onSelectProficiency: (level: ProficiencyLevel) => void;
-  onStartSession: (tab: "stage" | "pronunciation" | "curriculum", topicId?: string) => void;
+  onStartSession: (tab: "stage" | "pronunciation" | "curriculum" | "chapters", topicId?: string) => void;
   onTriggerQuickDemo: (gesture: string) => void;
   onResumeLesson?: () => void;
   onOpenDiagnostics?: () => void;
@@ -88,6 +89,20 @@ export const Dashboard: React.FC<DashboardProps> = ({
       stats: ["Curated Roleplay Scenarios", "High-frequency Vocabulary Spotlights", "Grammar Rule Mastery"],
       ctaText: "Explore Curriculum",
       action: () => onStartSession("curriculum"),
+    },
+    {
+      id: "chapters",
+      title: "Vocab & Grammar Chapters",
+      badge: "CEFR A1–B2 Masterclasses",
+      badgeColor: "bg-purple-500/20 text-purple-300 border-purple-500/30",
+      description:
+        "Master comprehensive vocabulary chapters and grammar masterclasses with interactive flashcards, rule deep-dives, smartboard sends, and quiz assessments.",
+      icon: Layers,
+      accentGradient: "from-purple-600/20 to-pink-600/10",
+      borderAccent: "hover:border-purple-500/50",
+      stats: ["Interactive Flashcard Decks", "Grammar Formulas & Deep Dives", "Real-time Quiz Engine"],
+      ctaText: "Open Chapters",
+      action: () => onStartSession("chapters"),
     },
   ];
 

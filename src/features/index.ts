@@ -14,3 +14,4 @@ export * from "./smartboard";
 export * from "./avatar";
 export * from "./dashboard";
 export * from "./auth";
+export * from "./chapters";

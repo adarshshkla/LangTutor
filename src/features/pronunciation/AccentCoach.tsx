@@ -290,6 +290,86 @@ const ACCENT_MODULES_BY_LANG: Record<TargetLanguage, AccentStep[]> = {
       ],
     },
   ],
+  Hindi: [
+    {
+      id: "hi-step-1",
+      level: "Basic",
+      title: "Step 1: Clear Vowels & Aspiration",
+      subtitle: "Differentiating aspirated and non-aspirated consonants",
+      conceptDescription: "In Hindi, blowing air (aspiration) changes the meaning of words. You must clearly distinguish 'k' and 'kh', 'p' and 'ph'.",
+      nativeLanguageComparisonTip: "Hold a hand in front of your mouth. For 'kh', you should feel a strong puff of air.",
+      ruleSummary: "Aspiration is a phonemic feature.",
+      rhythmType: "syllable-timed",
+      exampleSentence: "Pal (moment) vs Phal (fruit)",
+      phoneticSpelling: "[pəl vs pʰəl]",
+      translation: "Moment vs Fruit",
+      stressIndices: [0],
+      pitchContour: ["mid", "mid"],
+      practiceDrills: [
+        { phrase: "Kal vs Khal", focusNote: "Practice the puff of air", expectedPace: "slow" },
+      ],
+    }
+  ],
+  Kannada: [
+    {
+      id: "kn-step-1",
+      level: "Basic",
+      title: "Step 1: Retroflex Consonants",
+      subtitle: "Rolling the tongue back",
+      conceptDescription: "Kannada has distinct retroflex sounds (ṭ, ḍ, ṇ, ḷ). Roll your tongue back to touch the roof of your mouth.",
+      nativeLanguageComparisonTip: "It sounds 'harder' or 'heavier' than the standard t or d.",
+      ruleSummary: "Distinguish dental and retroflex consonants clearly.",
+      rhythmType: "syllable-timed",
+      exampleSentence: "Tale (head) vs Taale (palm)",
+      phoneticSpelling: "[ta.le vs ṭa.le]",
+      translation: "Head vs Palm Tree",
+      stressIndices: [0],
+      pitchContour: ["mid", "mid"],
+      practiceDrills: [
+        { phrase: "Halli (lizard) vs Halli (village)", focusNote: "Listen to the L sounds carefully", expectedPace: "slow" },
+      ],
+    }
+  ],
+  Gujarati: [
+    {
+      id: "gu-step-1",
+      level: "Basic",
+      title: "Step 1: Murmured Vowels",
+      subtitle: "The breathy voice of Gujarati",
+      conceptDescription: "Gujarati uses 'murmured' or 'breathy' vowels, where you simultaneously vibrate vocal cords and release extra air.",
+      nativeLanguageComparisonTip: "Imagine sighing deeply while speaking the vowel.",
+      ruleSummary: "Breathy vowels change meaning.",
+      rhythmType: "syllable-timed",
+      exampleSentence: "Māro (mine) vs Mhāro (our)",
+      phoneticSpelling: "[ma.ro vs mha.ro]",
+      translation: "Mine vs Our",
+      stressIndices: [0],
+      pitchContour: ["mid", "mid"],
+      practiceDrills: [
+        { phrase: "Bār (twelve) vs Bhār (weight)", focusNote: "Focus on the breathy sound", expectedPace: "slow" },
+      ],
+    }
+  ],
+  Telugu: [
+    {
+      id: "te-step-1",
+      level: "Basic",
+      title: "Step 1: Vowel Endings (Ajanta)",
+      subtitle: "Every word ends in a vowel",
+      conceptDescription: "Telugu is known as the 'Italian of the East' because almost all native words end in a vowel sound.",
+      nativeLanguageComparisonTip: "Never cut a word off on a consonant. Always let it finish on a soft vowel.",
+      ruleSummary: "Ensure final vowels are pronounced clearly.",
+      rhythmType: "syllable-timed",
+      exampleSentence: "Namaskaramu",
+      phoneticSpelling: "[na.mas.kā.ra.mu]",
+      translation: "Hello",
+      stressIndices: [2],
+      pitchContour: ["mid", "mid", "high", "mid", "mid"],
+      practiceDrills: [
+        { phrase: "Baagunnara (How are you?)", focusNote: "Let the final 'a' ring clearly", expectedPace: "slow" },
+      ],
+    }
+  ],
 };
 
 export const AccentCoach: React.FC<AccentCoachProps> = ({

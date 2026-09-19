@@ -15,7 +15,11 @@ export type TargetLanguage =
   | "Japanese"
   | "German"
   | "Mandarin"
-  | "English";
+  | "English"
+  | "Hindi"
+  | "Kannada"
+  | "Gujarati"
+  | "Telugu";
 
 export type ProficiencyLevel =
   | "Beginner (A1-A2)"
