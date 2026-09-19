@@ -1,25 +1,46 @@
 import express from "express";
 import path from "path";
 import dotenv from "dotenv";
-import { GoogleGenAI, Type } from "@google/genai";
 import { createServer as createViteServer } from "vite";
 
 dotenv.config();
 
-let aiClient: GoogleGenAI | null = null;
+const GROQ_MODEL = "openai/gpt-oss-120b";
+const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 
-function getAI(): GoogleGenAI | null {
-  if (!aiClient && process.env.GEMINI_API_KEY) {
-    aiClient = new GoogleGenAI({
-      apiKey: process.env.GEMINI_API_KEY,
-      httpOptions: {
-        headers: {
-          "User-Agent": "aistudio-build",
-        },
-      },
-    });
+function hasGroqKey(): boolean {
+  return Boolean(process.env.GROQ_API_KEY);
+}
+
+// Calls Groq's OpenAI-compatible chat completions endpoint in JSON mode and
+// returns the parsed object. Throws on network/HTTP/parse failure so callers
+// can fall back cleanly.
+async function callGroqJSON(systemPrompt: string, userPrompt: string): Promise<any> {
+  const response = await fetch(GROQ_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.7,
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Groq API error ${response.status}: ${errText}`);
   }
-  return aiClient;
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content || "{}";
+  return JSON.parse(content);
 }
 
 async function startServer() {
@@ -32,7 +53,7 @@ async function startServer() {
   app.get("/api/health", (_req, res) => {
     res.json({
       status: "ok",
-      hasGeminiKey: Boolean(process.env.GEMINI_API_KEY),
+      hasGroqKey: hasGroqKey(),
       timestamp: new Date().toISOString(),
     });
   });
@@ -55,9 +76,7 @@ async function startServer() {
         return res.status(400).json({ error: "Missing message parameter" });
       }
 
-      const ai = getAI();
-
-      if (!ai) {
+      if (!hasGroqKey()) {
         // High quality offline fallback if no API key is set yet
         return res.json({
           spokenText: `¡Hola ${studentName}! I am your 3D language tutor for ${targetLanguage}. Let's work towards your goal of ${learningGoal}! You said: "${message}".`,
@@ -109,7 +128,19 @@ CRITICAL LINGUISTIC DIRECTIVES:
 5. Provide constructive feedback on grammar or word choice: explain mistakes clearly in ${nativeLanguage}.
 6. Highlight 1-3 useful vocabulary words or idioms with phonetic guides (IPA) and translations in ${nativeLanguage}.
 7. Provide 2-4 bullet notes for the classroom smart whiteboard summarizing the key lesson concepts.
-8. SUGGESTED REPLIES (MANDATORY): You MUST generate 2-3 natural suggested replies STRICTLY in the chosen target language (${targetLanguage}). The student will click these to practice speaking and responding in ${targetLanguage}. Do NOT output suggestions in ${nativeLanguage} unless ${targetLanguage} is the same as ${nativeLanguage}.`;
+8. SUGGESTED REPLIES (MANDATORY): You MUST generate 2-3 natural suggested replies STRICTLY in the chosen target language (${targetLanguage}). The student will click these to practice speaking and responding in ${targetLanguage}. Do NOT output suggestions in ${nativeLanguage} unless ${targetLanguage} is the same as ${nativeLanguage}.
+
+You MUST respond with ONLY a single valid JSON object (no markdown fences, no commentary) matching EXACTLY this shape:
+{
+  "spokenText": string,
+  "translation": string,
+  "gesture": "welcoming" | "explaining" | "praising" | "pointing" | "thinking" | "encouraging",
+  "boardNotes": string[],
+  "grammarFeedback": { "hasMistake": boolean, "originalSentence": string, "correctedSentence": string, "explanation": string, "ruleKey": string } | null,
+  "vocabularySpotlight": [{ "word": string, "phonetic": string, "meaning": string, "example": string }],
+  "pronunciationTip": string,
+  "suggestedReplies": string[]
+}`;
 
       const formattedHistory = Array.isArray(history)
         ? history
@@ -118,77 +149,11 @@ CRITICAL LINGUISTIC DIRECTIVES:
             .join("\n")
         : "";
 
-      const prompt = `${formattedHistory ? `Recent Conversation:\n${formattedHistory}\n\n` : ""}Student said: "${message}"
+      const userPrompt = `${formattedHistory ? `Recent Conversation:\n${formattedHistory}\n\n` : ""}Student said: "${message}"
 
 Respond strictly with valid JSON matching the requested schema.`;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3.8-flash",
-        contents: prompt,
-        config: {
-          systemInstruction,
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              spokenText: {
-                type: Type.STRING,
-                description: "The verbal response in target language to be spoken by TTS and lip-synced.",
-              },
-              translation: {
-                type: Type.STRING,
-                description: "English translation of the spokenText.",
-              },
-              gesture: {
-                type: Type.STRING,
-                description: "Physical gesture: 'welcoming', 'explaining', 'praising', 'pointing', 'thinking', 'encouraging'",
-              },
-              boardNotes: {
-                type: Type.ARRAY,
-                items: { type: Type.STRING },
-                description: "Key bullet points displayed on the 3D smart classroom board.",
-              },
-              grammarFeedback: {
-                type: Type.OBJECT,
-                description: "Grammar critique or corrections, or empty if perfect.",
-                properties: {
-                  hasMistake: { type: Type.BOOLEAN },
-                  originalSentence: { type: Type.STRING },
-                  correctedSentence: { type: Type.STRING },
-                  explanation: { type: Type.STRING },
-                  ruleKey: { type: Type.STRING },
-                },
-              },
-              vocabularySpotlight: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    word: { type: Type.STRING },
-                    phonetic: { type: Type.STRING },
-                    meaning: { type: Type.STRING },
-                    example: { type: Type.STRING },
-                  },
-                  required: ["word", "phonetic", "meaning"],
-                },
-              },
-              pronunciationTip: {
-                type: Type.STRING,
-                description: "Specific pronunciation tip for phonemes or syllable cadence in this target language.",
-              },
-              suggestedReplies: {
-                type: Type.ARRAY,
-                items: { type: Type.STRING },
-                description: "2-3 short sample phrases the student can try saying next.",
-              },
-            },
-            required: ["spokenText", "translation", "gesture", "boardNotes", "vocabularySpotlight"],
-          },
-        },
-      });
-
-      const rawText = response.text || "{}";
-      const parsed = JSON.parse(rawText);
+      const parsed = await callGroqJSON(systemInstruction, userPrompt);
       return res.json(parsed);
     } catch (error) {
       console.error("Error in /api/tutor/chat:", error);
@@ -204,8 +169,7 @@ Respond strictly with valid JSON matching the requested schema.`;
     try {
       const { expectedText, transcribedText, targetLanguage = "Spanish" } = req.body;
 
-      const ai = getAI();
-      if (!ai) {
+      if (!hasGroqKey()) {
         // Fallback calculation
         const match = expectedText?.toLowerCase().trim() === transcribedText?.toLowerCase().trim();
         return res.json({
@@ -222,45 +186,23 @@ Respond strictly with valid JSON matching the requested schema.`;
         });
       }
 
-      const prompt = `Evaluate the student's spoken attempt in ${targetLanguage}:
-Target sentence to pronounce: "${expectedText}"
-Recognized speech transcript: "${transcribedText}"
+      const systemInstruction = `You are a precise pronunciation coach for ${targetLanguage}. Analyze phonetic precision, syllable stress, omissions, or substitutions between a target sentence and what speech recognition transcribed. Give constructive pronunciation feedback.
 
-Analyze phonetic precision, syllable stress, omissions, or substitutions. Give constructive pronunciation feedback.`;
+You MUST respond with ONLY a single valid JSON object (no markdown fences, no commentary) matching EXACTLY this shape:
+{
+  "accuracyScore": number (0-100),
+  "pronunciationScore": number (0-100),
+  "feedback": string,
+  "gesture": "praising" | "encouraging" | "explaining",
+  "phoneticBreakdown": [{ "word": string, "ipa": string, "status": "good" | "needs-work" | "accent-tip" }],
+  "encouragement": string
+}`;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-3.8-flash",
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              accuracyScore: { type: Type.NUMBER, description: "Score from 0 to 100" },
-              pronunciationScore: { type: Type.NUMBER, description: "Score from 0 to 100" },
-              feedback: { type: Type.STRING, description: "Detailed pronunciation coaching" },
-              gesture: { type: Type.STRING, description: "'praising', 'encouraging', or 'explaining'" },
-              phoneticBreakdown: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    word: { type: Type.STRING },
-                    ipa: { type: Type.STRING },
-                    status: { type: Type.STRING, description: "'good', 'needs-work', or 'accent-tip'" },
-                  },
-                  required: ["word", "ipa", "status"],
-                },
-              },
-              encouragement: { type: Type.STRING },
-            },
-            required: ["accuracyScore", "pronunciationScore", "feedback", "gesture", "phoneticBreakdown"],
-          },
-        },
-      });
+      const userPrompt = `Target sentence to pronounce: "${expectedText}"
+Recognized speech transcript: "${transcribedText}"`;
 
-      const raw = response.text || "{}";
-      return res.json(JSON.parse(raw));
+      const parsed = await callGroqJSON(systemInstruction, userPrompt);
+      return res.json(parsed);
     } catch (error) {
       console.error("Error in /api/tutor/evaluate-speech:", error);
       return res.status(500).json({ error: "Failed to evaluate speech" });

@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { TargetLanguage } from "../../types";
 import { AccentStep } from "./types";
+import { speechCtrl } from "../../components/SpeechController";
+import { LANGUAGE_CONFIGS } from "../../components/LessonCurriculum";
 
 interface AccentCoachProps {
   targetLanguage: TargetLanguage;
@@ -298,14 +300,18 @@ export const AccentCoach: React.FC<AccentCoachProps> = ({
   const steps = ACCENT_MODULES_BY_LANG[targetLanguage] || ACCENT_MODULES_BY_LANG.Spanish;
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(0);
   const [isRecording, setIsRecording] = useState<boolean>(false);
+  const [isEvaluating, setIsEvaluating] = useState<boolean>(false);
   const [recordedFeedback, setRecordedFeedback] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const activeStep = steps[currentStepIndex] || steps[0];
+  const langCode = LANGUAGE_CONFIGS[targetLanguage]?.defaultVoiceLang || "en-US";
 
   const handleNext = () => {
     if (currentStepIndex < steps.length - 1) {
       setCurrentStepIndex((prev) => prev + 1);
       setRecordedFeedback(null);
+      setErrorMsg(null);
     }
   };
 
@@ -313,18 +319,78 @@ export const AccentCoach: React.FC<AccentCoachProps> = ({
     if (currentStepIndex > 0) {
       setCurrentStepIndex((prev) => prev - 1);
       setRecordedFeedback(null);
+      setErrorMsg(null);
     }
   };
 
-  const simulateRecordAndEvaluate = () => {
-    setIsRecording(true);
-    setRecordedFeedback(null);
-    setTimeout(() => {
-      setIsRecording(false);
+  // Sends the transcribed attempt to the same real evaluation endpoint the
+  // Speech Lab tab uses, so scores/feedback here are genuine, not simulated.
+  const evaluateAgainstStep = async (transcribedText: string) => {
+    setIsEvaluating(true);
+    setErrorMsg(null);
+    try {
+      // Strip the syllable-break hyphens ("Ma-ña-na" -> "Mañana") to get the
+      // natural-language target sentence for this step.
+      const expectedText = activeStep.exampleSentence.replace(/-/g, "");
+
+      const res = await fetch("/api/tutor/evaluate-speech", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          expectedText,
+          transcribedText,
+          targetLanguage,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to evaluate accent attempt");
+
+      const data = await res.json();
       setRecordedFeedback(
-        "Rhythm & Cadence: 92% native match! Excellent syllable pacing and pitch control."
+        `Rhythm & Cadence: ${data.accuracyScore}% match. ${data.feedback}`
       );
-    }, 2800);
+    } catch (err) {
+      console.error(err);
+      setErrorMsg(
+        "Couldn't reach the tutor for scoring — check your connection and try again."
+      );
+    } finally {
+      setIsEvaluating(false);
+    }
+  };
+
+  const handleRecordAndEvaluate = async () => {
+    if (isRecording) {
+      speechCtrl.stopListening();
+      setIsRecording(false);
+      return;
+    }
+
+    setRecordedFeedback(null);
+    setErrorMsg(null);
+    setIsRecording(true);
+
+    const supported = await speechCtrl.startListening(
+      langCode,
+      (transcript, isFinal) => {
+        if (isFinal && transcript.trim()) {
+          setIsRecording(false);
+          evaluateAgainstStep(transcript);
+        }
+      },
+      (err) => {
+        setErrorMsg(err);
+        setIsRecording(false);
+      },
+      () => {
+        setIsRecording(false);
+      }
+    );
+
+    if (!supported) {
+      setIsRecording(false);
+      setErrorMsg("Speech recognition isn't supported in this browser.");
+    }
   };
 
   return (
@@ -496,25 +562,37 @@ export const AccentCoach: React.FC<AccentCoachProps> = ({
 
         {/* Recording Practice & Feedback */}
         <div className="pt-2 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={simulateRecordAndEvaluate}
-              disabled={isRecording}
-              className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
-                isRecording
-                  ? "bg-rose-600 text-white animate-pulse"
-                  : "bg-slate-800 hover:bg-slate-700 text-slate-200"
-              }`}
-            >
-              {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4 text-rose-400" />}
-              <span>{isRecording ? "Listening to your rhythm..." : "Test My Accent"}</span>
-            </button>
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleRecordAndEvaluate}
+                disabled={isEvaluating}
+                className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer disabled:opacity-60 ${
+                  isRecording
+                    ? "bg-rose-600 text-white animate-pulse"
+                    : "bg-slate-800 hover:bg-slate-700 text-slate-200"
+                }`}
+              >
+                {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4 text-rose-400" />}
+                <span>
+                  {isEvaluating
+                    ? "Analyzing your rhythm..."
+                    : isRecording
+                    ? "Listening... click to stop"
+                    : "Test My Accent"}
+                </span>
+              </button>
 
-            {recordedFeedback && (
-              <span className="text-xs text-emerald-300 font-medium flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>{recordedFeedback}</span>
-              </span>
+              {recordedFeedback && (
+                <span className="text-xs text-emerald-300 font-medium flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>{recordedFeedback}</span>
+                </span>
+              )}
+            </div>
+
+            {errorMsg && (
+              <span className="text-xs text-rose-300">{errorMsg}</span>
             )}
           </div>
 
