@@ -24,7 +24,7 @@ function getAI(): GoogleGenAI | null {
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
   app.use(express.json({ limit: "10mb" }));
 
@@ -123,7 +123,7 @@ CRITICAL LINGUISTIC DIRECTIVES:
 Respond strictly with valid JSON matching the requested schema.`;
 
       const response = await ai.models.generateContent({
-        model: "gemini-3.8-flash",
+        model: "gemini-2.5-flash",
         contents: prompt,
         config: {
           systemInstruction,
@@ -229,7 +229,7 @@ Recognized speech transcript: "${transcribedText}"
 Analyze phonetic precision, syllable stress, omissions, or substitutions. Give constructive pronunciation feedback.`;
 
       const response = await ai.models.generateContent({
-        model: "gemini-3.8-flash",
+        model: "gemini-2.5-flash",
         contents: prompt,
         config: {
           responseMimeType: "application/json",

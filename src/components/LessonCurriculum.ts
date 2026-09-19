@@ -90,6 +90,58 @@ export const LANGUAGE_CONFIGS: Record<
       "Could you please give me feedback on my pronunciation?",
     ],
   },
+  Hindi: {
+    code: "hi-IN",
+    flag: "🇮🇳",
+    nativeName: "हिन्दी",
+    defaultVoiceLang: "hi-IN",
+    accentColor: "from-orange-500 to-red-600",
+    sampleStarter: "नमस्ते! मैं आपके साथ हिन्दी का अभ्यास करना चाहता हूँ।",
+    defaultSuggestedReplies: [
+      "नमस्ते! आप कैसे हैं?",
+      "मैं रोजमर्रा की बातचीत का अभ्यास करना चाहता हूँ।",
+      "कृपया मेरे उच्चारण को सुधारें।",
+    ],
+  },
+  Kannada: {
+    code: "kn-IN",
+    flag: "🇮🇳",
+    nativeName: "ಕನ್ನಡ",
+    defaultVoiceLang: "kn-IN",
+    accentColor: "from-yellow-500 to-red-500",
+    sampleStarter: "ನಮಸ್ಕಾರ! ನಾನು ನಿಮ್ಮೊಂದಿಗೆ ಕನ್ನಡ ಅಭ್ಯಾಸ ಮಾಡಲು ಬಯಸುತ್ತೇನೆ.",
+    defaultSuggestedReplies: [
+      "ನಮಸ್ಕಾರ! ನೀವು ಹೇಗಿದ್ದೀರಿ?",
+      "ನಾನು ದೈನಂದಿನ ಸಂಭಾಷಣೆಯನ್ನು ಕಲಿಯಲು ಬಯಸುತ್ತೇನೆ.",
+      "ದಯವಿಟ್ಟು ನನ್ನ ಉಚ್ಚಾರಣೆಯನ್ನು ಸರಿಪಡಿಸಿ.",
+    ],
+  },
+  Gujarati: {
+    code: "gu-IN",
+    flag: "🇮🇳",
+    nativeName: "ગુજરાતી",
+    defaultVoiceLang: "gu-IN",
+    accentColor: "from-orange-400 to-yellow-600",
+    sampleStarter: "નમસ્તે! મારે તમારી સાથે ગુજરાતીમાં વાત કરવી છે.",
+    defaultSuggestedReplies: [
+      "નમસ્તે! તમે કેમ છો?",
+      "મારે રોજિંદી વાતચીત શીખવી છે.",
+      "કૃપા કરીને મારા ઉચ્ચારણને સુધારો.",
+    ],
+  },
+  Telugu: {
+    code: "te-IN",
+    flag: "🇮🇳",
+    nativeName: "తెలుగు",
+    defaultVoiceLang: "te-IN",
+    accentColor: "from-rose-500 to-pink-600",
+    sampleStarter: "నమస్కారం! నేను మీతో తెలుగు నేర్చుకోవాలనుకుంటున్నాను.",
+    defaultSuggestedReplies: [
+      "నమస్కారం! మీరు ఎలా ఉన్నారు?",
+      "నేను రోజువారీ సంభాషణలను సాధన చేయాలనుకుంటున్నాను.",
+      "దయచేసి నా ఉచ్చారణను సరిదిద్దండి.",
+    ],
+  },
 };
 
 export const LESSON_TOPICS: Record<TargetLanguage, LessonTopic[]> = {
@@ -245,6 +297,66 @@ export const LESSON_TOPICS: Record<TargetLanguage, LessonTopic[]> = {
         "I specialize in building intuitive user experiences and leading cross-functional teams.",
         "One of my greatest strengths is turning complex challenges into clear milestones.",
         "I am excited about this role because it aligns with my passion for innovation.",
+      ],
+    },
+  ],
+  Hindi: [
+    {
+      id: "hi-greetings",
+      title: "Namaste & Daily Greetings",
+      description: "Learn essential polite greetings, asking how someone is doing, and showing respect.",
+      category: "conversation",
+      starterPrompt: "नमस्ते! मुझे आम बातचीत और अभिवादन का अभ्यास करना है।",
+      targetVocab: ["नमस्ते", "आप कैसे हैं?", "मैं ठीक हूँ", "धन्यवाद"],
+      practiceSentences: [
+        "नमस्ते! आपसे मिलकर बहुत खुशी हुई।",
+        "आप कैसे हैं? सब ठीक है?",
+        "मैं ठीक हूँ, आपका बहुत-बहुत धन्यवाद।",
+      ],
+    },
+  ],
+  Kannada: [
+    {
+      id: "kn-greetings",
+      title: "Basic Greetings in Kannada",
+      description: "Start conversations, ask about wellbeing, and show politeness in Karnataka.",
+      category: "conversation",
+      starterPrompt: "ನಮಸ್ಕಾರ! ನಾನು ಕನ್ನಡದಲ್ಲಿ ಮಾತನಾಡಲು ಕಲಿಯಬೇಕು.",
+      targetVocab: ["ನಮಸ್ಕಾರ", "ಹೇಗಿದ್ದೀರಿ?", "ನಾನು ಚೆನ್ನಾಗಿದ್ದೀನಿ", "ಧನ್ಯವಾದಗಳು"],
+      practiceSentences: [
+        "ನಮಸ್ಕಾರ! ನಿಮ್ಮನ್ನು ಭೇಟಿಯಾಗಿದ್ದು ಸಂತೋಷವಾಯಿತು.",
+        "ನೀವು ಹೇಗಿದ್ದೀರಿ? ಊಟ ಆಯ್ತಾ?",
+        "ನಾನು ಚೆನ್ನಾಗಿದ್ದೀನಿ, ಧನ್ಯವಾದಗಳು.",
+      ],
+    },
+  ],
+  Gujarati: [
+    {
+      id: "gu-greetings",
+      title: "Kem Cho? (How are you?)",
+      description: "The classic Gujarati greeting and polite conversation starters.",
+      category: "conversation",
+      starterPrompt: "નમસ્તે! મારે ગુજરાતીમાં વાતચીત શરૂ કરવી છે.",
+      targetVocab: ["નમસ્તે", "કેમ છો?", "મજામાં", "આભાર"],
+      practiceSentences: [
+        "નમસ્તે! તમને મળીને આનંદ થયો.",
+        "તમે કેમ છો? બધું બરાબર ને?",
+        "હું એકદમ મજામાં છું, આભાર.",
+      ],
+    },
+  ],
+  Telugu: [
+    {
+      id: "te-greetings",
+      title: "Namaskaram & Politeness",
+      description: "Learn respectful greetings and basic introductions in Telugu.",
+      category: "conversation",
+      starterPrompt: "నమస్కారం! నేను తెలుగులో మాట్లాడటం నేర్చుకోవాలనుకుంటున్నాను.",
+      targetVocab: ["నమస్కారం", "ఎలా ఉన్నారు?", "బాగున్నాను", "ధన్యవాదాలు"],
+      practiceSentences: [
+        "నమస్కారం! మిమ్మల్ని కలవడం చాలా సంతోషంగా ఉంది.",
+        "మీరు ఎలా ఉన్నారు? అంతా బాగుందా?",
+        "నేను బాగున్నాను, ధన్యవాదాలు.",
       ],
     },
   ],

@@ -261,4 +261,104 @@ export const STEP_BY_STEP_CURRICULUM: Record<TargetLanguage, CurriculumModule[]>
       ],
     },
   ],
+  Hindi: [
+    {
+      id: "hi-mod-1",
+      level: "A1 - Beginner",
+      title: "Module 1: Foundations of Hindi",
+      description: "Learn basic sentence structure, politeness markers (ji), and everyday greetings.",
+      badge: "Base Camp",
+      color: "from-orange-500 to-red-600",
+      lessons: [
+        {
+          id: "hi-1-1",
+          stepNumber: 1,
+          title: "Step 1: Namaste & Introductions",
+          summary: "Introduce yourself and ask how others are doing respectfully.",
+          grammarFocus: "Subject + Object + Verb (SOV) structure & 'Aap' (formal you)",
+          keyPhrases: [
+            { text: "नमस्ते! मेरा नाम राज है।", phonetic: "[nə.məs.t̪e! me.ɾa nɑːm ɾɑːdʒ hɛ]", translation: "Hello! My name is Raj." },
+            { text: "आप कैसे हैं?", phonetic: "[ɑːp kɛ.se hɛ̃]", translation: "How are you? (formal)" },
+          ],
+          starterPrompt: "नमस्ते! मैं अपना परिचय देना सीखना चाहता हूँ।",
+          estimatedMinutes: 10,
+        },
+      ],
+    },
+  ],
+  Kannada: [
+    {
+      id: "kn-mod-1",
+      level: "A1 - Beginner",
+      title: "Module 1: Everyday Kannada",
+      description: "Essential phrases for navigating Karnataka, greeting people, and showing respect.",
+      badge: "Quick Starter",
+      color: "from-yellow-500 to-red-500",
+      lessons: [
+        {
+          id: "kn-1-1",
+          stepNumber: 1,
+          title: "Step 1: The 'Oota Aytha' Culture",
+          summary: "Learn standard greetings and the famous 'Have you eaten?' small talk.",
+          grammarFocus: "Basic questions and polite verb endings",
+          keyPhrases: [
+            { text: "ನಮಸ್ಕಾರ, ಹೇಗಿದ್ದೀರಿ?", phonetic: "[na.mas.kā.ra, hē.gid.dī.ri?]", translation: "Hello, how are you?" },
+            { text: "ಊಟ ಆಯ್ತಾ?", phonetic: "[ū.ṭa āy.tā?]", translation: "Had your meal? (Common greeting)" },
+          ],
+          starterPrompt: "ನಮಸ್ಕಾರ! ನಾನು ಮೂಲಭೂತ ಕನ್ನಡ ಕಲಿಯಲು ಬಯಸುತ್ತೇನೆ.",
+          estimatedMinutes: 10,
+        },
+      ],
+    },
+  ],
+  Gujarati: [
+    {
+      id: "gu-mod-1",
+      level: "A1 - Beginner",
+      title: "Module 1: Joyful Gujarati Basics",
+      description: "Learn to ask 'Kem cho' and build basic sentences.",
+      badge: "Base Camp",
+      color: "from-orange-400 to-yellow-600",
+      lessons: [
+        {
+          id: "gu-1-1",
+          stepNumber: 1,
+          title: "Step 1: Greetings & Wellbeing",
+          summary: "The essential 'Kem cho' and how to respond that you are doing great.",
+          grammarFocus: "To be (chhu/chhe) and subject pronouns",
+          keyPhrases: [
+            { text: "કેમ છો?", phonetic: "[kēm chō?]", translation: "How are you?" },
+            { text: "હું મજામાં છું.", phonetic: "[huṁ ma.jā.māṁ chhuṁ.]", translation: "I am fine/enjoying." },
+          ],
+          starterPrompt: "નમસ્તે! મને ગુજરાતીમાં વાતચીત શરૂ કરતા શીખવાડો.",
+          estimatedMinutes: 10,
+        },
+      ],
+    },
+  ],
+  Telugu: [
+    {
+      id: "te-mod-1",
+      level: "A1 - Beginner",
+      title: "Module 1: Sweet Telugu Foundations",
+      description: "Start conversing in the 'Italian of the East' with polite greetings.",
+      badge: "Quick Starter",
+      color: "from-rose-500 to-pink-600",
+      lessons: [
+        {
+          id: "te-1-1",
+          stepNumber: 1,
+          title: "Step 1: Namaskaram & Politeness",
+          summary: "Introduce yourself and ask basic questions politely.",
+          grammarFocus: "Polite markers (andi) and basic pronouns",
+          keyPhrases: [
+            { text: "నమస్కారం, బాగున్నారా?", phonetic: "[na.mas.kā.raṁ, bā.gun.nā.rā?]", translation: "Hello, are you doing well?" },
+            { text: "నా పేరు అర్జున్.", phonetic: "[nā pē.ru ar.jun.]", translation: "My name is Arjun." },
+          ],
+          starterPrompt: "నమస్కారం! నేను ప్రాథమిక తెలుగు నేర్చుకోవాలనుకుంటున్నాను.",
+          estimatedMinutes: 10,
+        },
+      ],
+    },
+  ],
 };
