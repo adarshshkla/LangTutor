@@ -1,22 +1,17 @@
 import express from "express";
 import path from "path";
 import dotenv from "dotenv";
-import { GoogleGenAI, Type } from "@google/genai";
+import Anthropic from "@anthropic-ai/sdk";
 import { createServer as createViteServer } from "vite";
 
 dotenv.config();
 
-let aiClient: GoogleGenAI | null = null;
+let aiClient: Anthropic | null = null;
 
-function getAI(): GoogleGenAI | null {
-  if (!aiClient && process.env.GEMINI_API_KEY) {
-    aiClient = new GoogleGenAI({
-      apiKey: process.env.GEMINI_API_KEY,
-      httpOptions: {
-        headers: {
-          "User-Agent": "aistudio-build",
-        },
-      },
+function getAI(): Anthropic | null {
+  if (!aiClient && process.env.ANTHROPIC_API_KEY) {
+    aiClient = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
     });
   }
   return aiClient;
@@ -32,7 +27,7 @@ async function startServer() {
   app.get("/api/health", (_req, res) => {
     res.json({
       status: "ok",
-      hasGeminiKey: Boolean(process.env.GEMINI_API_KEY),
+      hasApiKey: Boolean(process.env.ANTHROPIC_API_KEY),
       timestamp: new Date().toISOString(),
     });
   });
@@ -109,7 +104,27 @@ CRITICAL LINGUISTIC DIRECTIVES:
 5. Provide constructive feedback on grammar or word choice: explain mistakes clearly in ${nativeLanguage}.
 6. Highlight 1-3 useful vocabulary words or idioms with phonetic guides (IPA) and translations in ${nativeLanguage}.
 7. Provide 2-4 bullet notes for the classroom smart whiteboard summarizing the key lesson concepts.
-8. SUGGESTED REPLIES (MANDATORY): You MUST generate 2-3 natural suggested replies STRICTLY in the chosen target language (${targetLanguage}). The student will click these to practice speaking and responding in ${targetLanguage}. Do NOT output suggestions in ${nativeLanguage} unless ${targetLanguage} is the same as ${nativeLanguage}.`;
+8. SUGGESTED REPLIES (MANDATORY): You MUST generate 2-3 natural suggested replies STRICTLY in the chosen target language (${targetLanguage}). The student will click these to practice speaking and responding in ${targetLanguage}. Do NOT output suggestions in ${nativeLanguage} unless ${targetLanguage} is the same as ${nativeLanguage}.
+
+RESPOND STRICTLY WITH A JSON OBJECT EXACTLY MATCHING THIS STRUCTURE:
+{
+  "spokenText": "The verbal response in target language",
+  "translation": "English translation",
+  "gesture": "welcoming|explaining|praising|pointing|thinking|encouraging",
+  "boardNotes": ["point 1", "point 2"],
+  "grammarFeedback": {
+    "hasMistake": true,
+    "originalSentence": "text",
+    "correctedSentence": "text",
+    "explanation": "text",
+    "ruleKey": "text"
+  },
+  "vocabularySpotlight": [
+    { "word": "word", "phonetic": "ipa", "meaning": "meaning", "example": "example" }
+  ],
+  "pronunciationTip": "string tip",
+  "suggestedReplies": ["reply 1", "reply 2"]
+}`;
 
       const formattedHistory = Array.isArray(history)
         ? history
@@ -118,76 +133,22 @@ CRITICAL LINGUISTIC DIRECTIVES:
             .join("\n")
         : "";
 
-      const prompt = `${formattedHistory ? `Recent Conversation:\n${formattedHistory}\n\n` : ""}Student said: "${message}"
+      const prompt = `${formattedHistory ? `Recent Conversation:\n${formattedHistory}\n\n` : ""}Student said: "${message}"`;
 
-Respond strictly with valid JSON matching the requested schema.`;
-
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: prompt,
-        config: {
-          systemInstruction,
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              spokenText: {
-                type: Type.STRING,
-                description: "The verbal response in target language to be spoken by TTS and lip-synced.",
-              },
-              translation: {
-                type: Type.STRING,
-                description: "English translation of the spokenText.",
-              },
-              gesture: {
-                type: Type.STRING,
-                description: "Physical gesture: 'welcoming', 'explaining', 'praising', 'pointing', 'thinking', 'encouraging'",
-              },
-              boardNotes: {
-                type: Type.ARRAY,
-                items: { type: Type.STRING },
-                description: "Key bullet points displayed on the 3D smart classroom board.",
-              },
-              grammarFeedback: {
-                type: Type.OBJECT,
-                description: "Grammar critique or corrections, or empty if perfect.",
-                properties: {
-                  hasMistake: { type: Type.BOOLEAN },
-                  originalSentence: { type: Type.STRING },
-                  correctedSentence: { type: Type.STRING },
-                  explanation: { type: Type.STRING },
-                  ruleKey: { type: Type.STRING },
-                },
-              },
-              vocabularySpotlight: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    word: { type: Type.STRING },
-                    phonetic: { type: Type.STRING },
-                    meaning: { type: Type.STRING },
-                    example: { type: Type.STRING },
-                  },
-                  required: ["word", "phonetic", "meaning"],
-                },
-              },
-              pronunciationTip: {
-                type: Type.STRING,
-                description: "Specific pronunciation tip for phonemes or syllable cadence in this target language.",
-              },
-              suggestedReplies: {
-                type: Type.ARRAY,
-                items: { type: Type.STRING },
-                description: "2-3 short sample phrases the student can try saying next.",
-              },
-            },
-            required: ["spokenText", "translation", "gesture", "boardNotes", "vocabularySpotlight"],
-          },
-        },
+      // @ts-ignore - The response.content[0].text is guaranteed for text blocks
+      const response = await ai.messages.create({
+        model: "claude-3-5-sonnet-20241022",
+        system: systemInstruction,
+        messages: [
+          { role: "user", content: prompt },
+          { role: "assistant", content: "{" }
+        ],
+        max_tokens: 1500,
+        temperature: 0.7,
       });
 
-      const rawText = response.text || "{}";
+      const rawText = "{" + (response.content[0] as any).text;
+      
       const parsed = JSON.parse(rawText);
       return res.json(parsed);
     } catch (error) {
@@ -222,44 +183,35 @@ Respond strictly with valid JSON matching the requested schema.`;
         });
       }
 
-      const prompt = `Evaluate the student's spoken attempt in ${targetLanguage}:
-Target sentence to pronounce: "${expectedText}"
-Recognized speech transcript: "${transcribedText}"
+      const systemInstruction = `Evaluate the student's spoken attempt in ${targetLanguage}.
+Analyze phonetic precision, syllable stress, omissions, or substitutions. Give constructive pronunciation feedback.
 
-Analyze phonetic precision, syllable stress, omissions, or substitutions. Give constructive pronunciation feedback.`;
+RESPOND STRICTLY WITH A JSON OBJECT EXACTLY MATCHING THIS STRUCTURE:
+{
+  "accuracyScore": 95,
+  "pronunciationScore": 90,
+  "feedback": "Detailed pronunciation coaching",
+  "gesture": "praising|encouraging|explaining",
+  "phoneticBreakdown": [
+    { "word": "word", "ipa": "ipa", "status": "good|needs-work|accent-tip" }
+  ],
+  "encouragement": "Keep practicing!"
+}`;
 
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              accuracyScore: { type: Type.NUMBER, description: "Score from 0 to 100" },
-              pronunciationScore: { type: Type.NUMBER, description: "Score from 0 to 100" },
-              feedback: { type: Type.STRING, description: "Detailed pronunciation coaching" },
-              gesture: { type: Type.STRING, description: "'praising', 'encouraging', or 'explaining'" },
-              phoneticBreakdown: {
-                type: Type.ARRAY,
-                items: {
-                  type: Type.OBJECT,
-                  properties: {
-                    word: { type: Type.STRING },
-                    ipa: { type: Type.STRING },
-                    status: { type: Type.STRING, description: "'good', 'needs-work', or 'accent-tip'" },
-                  },
-                  required: ["word", "ipa", "status"],
-                },
-              },
-              encouragement: { type: Type.STRING },
-            },
-            required: ["accuracyScore", "pronunciationScore", "feedback", "gesture", "phoneticBreakdown"],
-          },
-        },
+      const prompt = `Target sentence to pronounce: "${expectedText}"\nRecognized speech transcript: "${transcribedText}"`;
+
+      const response = await ai.messages.create({
+        model: "claude-3-5-sonnet-20241022",
+        system: systemInstruction,
+        messages: [
+          { role: "user", content: prompt },
+          { role: "assistant", content: "{" }
+        ],
+        max_tokens: 1000,
+        temperature: 0.2,
       });
 
-      const raw = response.text || "{}";
+      const raw = "{" + (response.content[0] as any).text;
       return res.json(JSON.parse(raw));
     } catch (error) {
       console.error("Error in /api/tutor/evaluate-speech:", error);
