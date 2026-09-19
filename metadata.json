@@ -1,0 +1,6 @@
+{
+  "name": "AI 3D Language Learning Tutor",
+  "description": "Interactive 3D AI language tutor with real-time voice synthesis, lip-sync, teaching hand gestures, and comprehensive grammar, vocabulary, and pronunciation feedback.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

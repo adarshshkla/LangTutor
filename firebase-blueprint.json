@@ -1,0 +1,65 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile, chosen target language, native language for scaffolding, and proficiency",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "targetLanguage": { "type": "string" },
+        "nativeLanguage": { "type": "string" },
+        "proficiencyLevel": { "type": "string" },
+        "learningGoal": { "type": "string" },
+        "dailyGoalMinutes": { "type": "number" },
+        "isOnboarded": { "type": "boolean" },
+        "avatarIcon": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "targetLanguage", "nativeLanguage", "proficiencyLevel"]
+    },
+    "ConversationMessage": {
+      "title": "ConversationMessage",
+      "description": "Logged chat message in language practice",
+      "type": "object",
+      "properties": {
+        "role": { "type": "string", "enum": ["user", "tutor"] },
+        "text": { "type": "string" },
+        "translation": { "type": "string" },
+        "gesture": { "type": "string" },
+        "targetLanguage": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["role", "text", "targetLanguage"]
+    },
+    "PronunciationAttempt": {
+      "title": "PronunciationAttempt",
+      "description": "Student pronunciation practice attempt",
+      "type": "object",
+      "properties": {
+        "targetLanguage": { "type": "string" },
+        "sentence": { "type": "string" },
+        "transcribed": { "type": "string" },
+        "evaluation": { "type": "object" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["targetLanguage", "sentence", "transcribed"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Individual user document containing settings and profile"
+    },
+    "/users/{userId}/conversations/{messageId}": {
+      "schema": { "$ref": "#/entities/ConversationMessage" },
+      "description": "Chat log history for the user"
+    },
+    "/users/{userId}/pronunciationAttempts/{attemptId}": {
+      "schema": { "$ref": "#/entities/PronunciationAttempt" },
+      "description": "Speech pronunciation lab attempts"
+    }
+  }
+}
