@@ -567,6 +567,10 @@ export const VOCABULARY_CHAPTERS: Record<TargetLanguage, VocabChapter[]> = {
   German: [],
   Japanese: [],
   Mandarin: [],
+  Gujarati: [],
+  Hindi: [],
+  Kannada: [],
+  Telugu: [],
 };
 
 export const GRAMMAR_CHAPTERS: Record<TargetLanguage, GrammarChapter[]> = {
@@ -879,4 +883,8 @@ export const GRAMMAR_CHAPTERS: Record<TargetLanguage, GrammarChapter[]> = {
   German: [],
   Japanese: [],
   Mandarin: [],
+  Gujarati: [],
+  Hindi: [],
+  Kannada: [],
+  Telugu: [],
 };

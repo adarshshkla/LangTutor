@@ -80,6 +80,10 @@ export const TextAnalysisPanel: React.FC<TextAnalysisPanelProps> = ({
       { label: "Everyday Chit-chat", text: "今度の週末、もし時間があったらカフェでお茶しない？" },
       { label: "Polite Request", text: "恐れ入りますが、こちらの書類のご確認をお願いできますでしょうか。" },
     ],
+    Hindi: [],
+    Gujarati: [],
+    Kannada: [],
+    Telugu: [],
   };
 
   const activeSamples = sampleSentences[targetLanguage] || sampleSentences.English;

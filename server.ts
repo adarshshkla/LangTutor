@@ -1,20 +1,46 @@
 import express from "express";
 import path from "path";
 import dotenv from "dotenv";
-import Groq from "groq-sdk";
 import { createServer as createViteServer } from "vite";
 
 dotenv.config();
 
-let aiClient: Groq | null = null;
+const GROQ_MODEL = "openai/gpt-oss-120b";
+const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 
-function getAI(): Groq | null {
-  if (!aiClient && process.env.GROQ_API_KEY) {
-    aiClient = new Groq({
-      apiKey: process.env.GROQ_API_KEY,
-    });
+function hasApiKey(): boolean {
+  return Boolean(process.env.GROQ_API_KEY);
+}
+
+// Calls Groq's OpenAI-compatible chat completions endpoint in JSON mode and
+// returns the parsed object. Throws on network/HTTP/parse failure so callers
+// can fall back cleanly.
+async function callGroqJSON(systemPrompt: string, userPrompt: string): Promise<any> {
+  const response = await fetch(GROQ_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.7,
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Groq API error ${response.status}: ${errText}`);
   }
-  return aiClient;
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content || "{}";
+  return JSON.parse(content);
 }
 
 async function startServer() {
@@ -27,7 +53,7 @@ async function startServer() {
   app.get("/api/health", (_req, res) => {
     res.json({
       status: "ok",
-      hasApiKey: Boolean(process.env.GROQ_API_KEY),
+      hasApiKey: hasApiKey(),
       timestamp: new Date().toISOString(),
     });
   });
@@ -50,9 +76,7 @@ async function startServer() {
         return res.status(400).json({ error: "Missing message parameter" });
       }
 
-      const ai = getAI();
-
-      if (!ai) {
+      if (!hasApiKey()) {
         const isTargetEnglish = targetLanguage.toLowerCase() === "english";
         // High quality offline fallback if no API key is set yet
         return res.json({
@@ -128,26 +152,17 @@ CRITICAL LINGUISTIC DIRECTIVES:
 7. Provide 2-4 bullet notes for the classroom smart whiteboard summarizing the key lesson concepts.
 8. SUGGESTED REPLIES (MANDATORY): You MUST generate 2-3 natural suggested replies STRICTLY in the chosen target language (${targetLanguage}). The student will click these to practice speaking and responding in ${targetLanguage}. Do NOT output suggestions in ${nativeLanguage} unless ${targetLanguage} is the same as ${nativeLanguage}.
 
-RESPOND STRICTLY WITH A JSON OBJECT EXACTLY MATCHING THIS STRUCTURE:
+You MUST respond with ONLY a single valid JSON object (no markdown fences, no commentary) matching EXACTLY this shape:
 {
-  "spokenText": "The verbal response in target language",
-  "translation": "English translation",
-  "gesture": "welcoming|explaining|praising|pointing|thinking|encouraging",
-  "boardNotes": ["point 1", "point 2"],
-  "grammarFeedback": {
-    "hasMistake": true,
-    "originalSentence": "text",
-    "correctedSentence": "text",
-    "explanation": "text",
-    "ruleKey": "text"
-  },
-  "vocabularySpotlight": [
-    { "word": "word", "phonetic": "ipa", "meaning": "meaning", "example": "example" }
-  ],
-  "pronunciationTip": "string tip",
-  "suggestedReplies": ["reply 1", "reply 2"]
-}
-If there is no grammar mistake, set "grammarFeedback" to null. Ensure the output is a valid JSON object.`;
+  "spokenText": string,
+  "translation": string,
+  "gesture": "welcoming" | "explaining" | "praising" | "pointing" | "thinking" | "encouraging",
+  "boardNotes": string[],
+  "grammarFeedback": { "hasMistake": boolean, "originalSentence": string, "correctedSentence": string, "explanation": string, "ruleKey": string } | null,
+  "vocabularySpotlight": [{ "word": string, "phonetic": string, "meaning": string, "example": string }],
+  "pronunciationTip": string,
+  "suggestedReplies": string[]
+}`;
 
       const formattedHistory = Array.isArray(history)
         ? history
@@ -156,21 +171,11 @@ If there is no grammar mistake, set "grammarFeedback" to null. Ensure the output
             .join("\n")
         : "";
 
-      const prompt = `${formattedHistory ? `Recent Conversation:\n${formattedHistory}\n\n` : ""}Student said: "${message}"`;
+      const userPrompt = `${formattedHistory ? `Recent Conversation:\n${formattedHistory}\n\n` : ""}Student said: "${message}"
 
-      const response = await ai.chat.completions.create({
-        model: "llama-3.3-70b-versatile",
-        messages: [
-          { role: "system", content: systemInstruction },
-          { role: "user", content: prompt }
-        ],
-        response_format: { type: "json_object" },
-        max_tokens: 1500,
-        temperature: 0.7,
-      });
+Respond strictly with valid JSON matching the requested schema.`;
 
-      const rawText = response.choices[0]?.message?.content || "{}";
-      const parsed = JSON.parse(rawText);
+      const parsed = await callGroqJSON(systemInstruction, userPrompt);
       return res.json(parsed);
     } catch (error) {
       console.error("Error in /api/tutor/chat:", error);
@@ -186,8 +191,7 @@ If there is no grammar mistake, set "grammarFeedback" to null. Ensure the output
     try {
       const { expectedText, transcribedText, targetLanguage = "English" } = req.body;
 
-      const ai = getAI();
-      if (!ai) {
+      if (!hasApiKey()) {
         // Fallback calculation
         const match = expectedText?.toLowerCase().trim() === transcribedText?.toLowerCase().trim();
         return res.json({
@@ -204,37 +208,23 @@ If there is no grammar mistake, set "grammarFeedback" to null. Ensure the output
         });
       }
 
-      const systemInstruction = `Evaluate the student's spoken attempt in ${targetLanguage}.
-Analyze phonetic precision, syllable stress, omissions, or substitutions. Give constructive pronunciation feedback.
+      const systemInstruction = `You are a precise pronunciation coach for ${targetLanguage}. Analyze phonetic precision, syllable stress, omissions, or substitutions between a target sentence and what speech recognition transcribed. Give constructive pronunciation feedback.
 
-RESPOND STRICTLY WITH A JSON OBJECT EXACTLY MATCHING THIS STRUCTURE:
+You MUST respond with ONLY a single valid JSON object (no markdown fences, no commentary) matching EXACTLY this shape:
 {
-  "accuracyScore": 95,
-  "pronunciationScore": 90,
-  "feedback": "Detailed pronunciation coaching",
-  "gesture": "praising|encouraging|explaining",
-  "phoneticBreakdown": [
-    { "word": "word", "ipa": "ipa", "status": "good|needs-work|accent-tip" }
-  ],
-  "encouragement": "Keep practicing!"
-}
-Ensure the output is a valid JSON object.`;
+  "accuracyScore": number (0-100),
+  "pronunciationScore": number (0-100),
+  "feedback": string,
+  "gesture": "praising" | "encouraging" | "explaining",
+  "phoneticBreakdown": [{ "word": string, "ipa": string, "status": "good" | "needs-work" | "accent-tip" }],
+  "encouragement": string
+}`;
 
-      const prompt = `Target sentence to pronounce: "${expectedText}"\nRecognized speech transcript: "${transcribedText}"`;
+      const userPrompt = `Target sentence to pronounce: "${expectedText}"
+Recognized speech transcript: "${transcribedText}"`;
 
-      const response = await ai.chat.completions.create({
-        model: "llama-3.3-70b-versatile",
-        messages: [
-          { role: "system", content: systemInstruction },
-          { role: "user", content: prompt }
-        ],
-        response_format: { type: "json_object" },
-        max_tokens: 1000,
-        temperature: 0.2,
-      });
-
-      const raw = response.choices[0]?.message?.content || "{}";
-      return res.json(JSON.parse(raw));
+      const parsed = await callGroqJSON(systemInstruction, userPrompt);
+      return res.json(parsed);
     } catch (error) {
       console.error("Error in /api/tutor/evaluate-speech:", error);
       return res.status(500).json({ error: "Failed to evaluate speech" });
