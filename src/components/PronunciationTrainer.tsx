@@ -9,16 +9,20 @@ import { PhoneticMouthVisualizer } from "./PhoneticMouthVisualizer";
 interface PronunciationTrainerProps {
   targetLanguage: TargetLanguage;
   langCode: string;
-  practiceSentences: string[];
+  practiceSentences?: string[];
   userId?: string;
-  onTriggerGesture: (gesture: GestureType) => void;
+  onTriggerGesture?: (gesture: GestureType) => void;
   onSpeakText: (text: string) => void;
 }
 
 export const PronunciationTrainer: React.FC<PronunciationTrainerProps> = ({
   targetLanguage,
   langCode,
-  practiceSentences,
+  practiceSentences = [
+    "¡Buenos días! ¿Cómo estás hoy?",
+    "Me gustaría practicar mi pronunciación.",
+    "El rápido zorro marrón salta sobre el perro perezoso.",
+  ],
   userId,
   onTriggerGesture,
   onSpeakText,
@@ -32,12 +36,14 @@ export const PronunciationTrainer: React.FC<PronunciationTrainerProps> = ({
 
   const activeSentence = practiceSentences[selectedSentenceIndex] || "¡Hola mundo!";
 
-  const handleStartSpeaking = () => {
+  const handleStartSpeaking = async () => {
     setErrorMsg(null);
     setResult(null);
     setTranscription("");
+    setIsRecording(true);
+    onTriggerGesture?.("listening");
 
-    const supported = speechCtrl.startListening(
+    const supported = await speechCtrl.startListening(
       langCode,
       (transcript, isFinal) => {
         setTranscription(transcript);
@@ -55,9 +61,8 @@ export const PronunciationTrainer: React.FC<PronunciationTrainerProps> = ({
       }
     );
 
-    if (supported) {
-      setIsRecording(true);
-      onTriggerGesture("listening");
+    if (!supported) {
+      setIsRecording(false);
     }
   };
 
@@ -71,7 +76,7 @@ export const PronunciationTrainer: React.FC<PronunciationTrainerProps> = ({
 
   const evaluateAudio = async (expected: string, transcribed: string) => {
     setIsEvaluating(true);
-    onTriggerGesture("thinking");
+    onTriggerGesture?.("thinking");
 
     try {
       const res = await fetch("/api/tutor/evaluate-speech", {
@@ -99,7 +104,7 @@ export const PronunciationTrainer: React.FC<PronunciationTrainerProps> = ({
       }
 
       // Trigger tutor gesture & voice response
-      onTriggerGesture(data.gesture || (data.accuracyScore >= 80 ? "praising" : "encouraging"));
+      onTriggerGesture?.(data.gesture || (data.accuracyScore >= 80 ? "praising" : "encouraging"));
 
       if (data.accuracyScore >= 85) {
         confetti({
@@ -143,7 +148,7 @@ export const PronunciationTrainer: React.FC<PronunciationTrainerProps> = ({
         encouragement: "Repeat the sentence while observing the tutor's mouth movements!",
       });
 
-      onTriggerGesture(score > 75 ? "praising" : "encouraging");
+      onTriggerGesture?.(score > 75 ? "praising" : "encouraging");
     } finally {
       setIsEvaluating(false);
     }

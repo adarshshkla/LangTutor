@@ -14,28 +14,34 @@ import {
   Play,
   RotateCcw,
 } from "lucide-react";
-import { TargetLanguage, ProficiencyLevel, LessonTopic, UserProfile } from "../types";
+import { TargetLanguage, ProficiencyLevel, LessonTopic, UserProfile, TeachingModuleProgress } from "../types";
 import { LANGUAGE_CONFIGS, LESSON_TOPICS } from "./LessonCurriculum";
 
 interface DashboardProps {
   targetLanguage: TargetLanguage;
   proficiencyLevel: ProficiencyLevel;
   userProfile: UserProfile | null;
+  curriculumProgress?: TeachingModuleProgress | null;
   onOpenOnboarding: (step?: 1 | 2 | 3) => void;
   onSelectLanguage: (lang: TargetLanguage) => void;
   onSelectProficiency: (level: ProficiencyLevel) => void;
   onStartSession: (tab: "stage" | "pronunciation" | "curriculum", topicId?: string) => void;
   onTriggerQuickDemo: (gesture: string) => void;
+  onResumeLesson?: () => void;
+  onOpenDiagnostics?: () => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
   targetLanguage,
   proficiencyLevel,
   userProfile,
+  curriculumProgress,
   onOpenOnboarding,
   onSelectLanguage,
   onSelectProficiency,
   onStartSession,
+  onResumeLesson,
+  onOpenDiagnostics,
 }) => {
   const langConfig = LANGUAGE_CONFIGS[targetLanguage];
   const topics: LessonTopic[] = LESSON_TOPICS[targetLanguage] || [];
@@ -141,6 +147,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
                   <Globe className="w-3.5 h-3.5" />
                   <span>Consult / Change Language</span>
                 </button>
+                {onOpenDiagnostics && (
+                  <button
+                    id="btn-dash-sound-test"
+                    onClick={onOpenDiagnostics}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-colors flex items-center gap-1.5"
+                  >
+                    <Headphones className="w-3.5 h-3.5 text-blue-400" />
+                    <span>Test Sound & Mic</span>
+                  </button>
+                )}
                 <button
                   id="btn-quick-launch-classroom"
                   onClick={() => onStartSession("stage")}
@@ -151,6 +167,45 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 </button>
               </div>
             </div>
+
+            {/* Resume Teaching Module Where You Left Off Card */}
+            {curriculumProgress?.currentLessonTitle && (
+              <div className="p-3.5 rounded-xl bg-blue-950/40 border border-blue-800/60 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold text-xs shrink-0">
+                    <BookOpen className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] uppercase font-bold text-blue-400 tracking-wider">
+                        Resume Where You Left Off:
+                      </span>
+                      <span className="text-xs font-bold text-white">
+                        {curriculumProgress.currentLessonTitle}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      Completed: {curriculumProgress.completedCount || 0} of {curriculumProgress.totalLessons || 12} steps ({curriculumProgress.progressPercentage || 0}%) • Synced with Database
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    if (onResumeLesson) {
+                      onResumeLesson();
+                    } else {
+                      onStartSession("curriculum");
+                    }
+                  }}
+                  className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-lg flex items-center gap-1.5 shadow-md transition-all shrink-0 cursor-pointer"
+                >
+                  <Play className="w-3 h-3 fill-white" />
+                  <span>Resume</span>
+                  <ArrowRight className="w-3 h-3" />
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Quick status preview card */}
@@ -181,8 +236,10 @@ export const Dashboard: React.FC<DashboardProps> = ({
                 <span className="font-medium text-blue-300">{proficiencyLevel.split(" ")[0]}</span>
               </div>
               <div className="flex items-center justify-between text-slate-300">
-                <span className="text-slate-400">Daily Habit:</span>
-                <span className="font-medium text-emerald-400">{userProfile?.dailyGoalMinutes || 15} mins / day</span>
+                <span className="text-slate-400">Curriculum Step:</span>
+                <span className="font-medium text-cyan-300 line-clamp-1 max-w-[120px]">
+                  {curriculumProgress?.currentLessonTitle || "Step 1: Introduction"}
+                </span>
               </div>
             </div>
             <button

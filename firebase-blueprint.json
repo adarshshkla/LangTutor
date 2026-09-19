@@ -46,6 +46,29 @@
         "timestamp": { "type": "string" }
       },
       "required": ["targetLanguage", "sentence", "transcribed"]
+    },
+    "TeachingModuleProgress": {
+      "title": "TeachingModuleProgress",
+      "description": "User's curriculum progress, completed step lessons, and resume point",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "targetLanguage": { "type": "string" },
+        "completedLessonIds": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "currentModuleId": { "type": "string" },
+        "currentLessonId": { "type": "string" },
+        "currentLessonTitle": { "type": "string" },
+        "currentTopicId": { "type": "string" },
+        "progressPercentage": { "type": "number" },
+        "completedCount": { "type": "number" },
+        "totalLessons": { "type": "number" },
+        "lastActiveDate": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "targetLanguage", "completedLessonIds", "currentLessonId"]
     }
   },
   "firestore": {
@@ -60,6 +83,10 @@
     "/users/{userId}/pronunciationAttempts/{attemptId}": {
       "schema": { "$ref": "#/entities/PronunciationAttempt" },
       "description": "Speech pronunciation lab attempts"
+    },
+    "/users/{userId}/curriculumProgress/{progressId}": {
+      "schema": { "$ref": "#/entities/TeachingModuleProgress" },
+      "description": "User curriculum progress and resume point per language"
     }
   }
 }

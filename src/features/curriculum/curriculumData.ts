@@ -1,0 +1,264 @@
+import { TargetLanguage } from "../../types";
+import { CurriculumModule } from "./types";
+
+export const STEP_BY_STEP_CURRICULUM: Record<TargetLanguage, CurriculumModule[]> = {
+  Spanish: [
+    {
+      id: "es-mod-1",
+      level: "A1 - Beginner",
+      title: "Module 1: Foundations & Essential Survival",
+      description: "First contact with the language: phonetics, greetings, essential verbs (ser/estar), and everyday pleasantries.",
+      badge: "Base Camp",
+      color: "from-amber-500 to-orange-600",
+      lessons: [
+        {
+          id: "es-1-1",
+          stepNumber: 1,
+          title: "Step 1: First Encounters & Introductions",
+          summary: "Learn how to greet someone politely, introduce yourself, and ask how they are feeling.",
+          grammarFocus: "Subject pronouns (yo, tú, usted) + verb llamarse & estar",
+          keyPhrases: [
+            { text: "¡Hola! ¿Cómo te llamas?", phonetic: "[ˈo.la ˈko.mo te ˈʝa.mas]", translation: "Hello! What is your name?" },
+            { text: "Me llamo Carlos, mucho gusto.", phonetic: "[me ˈʝa.mo ˈkaɾ.los ˈmu.tʃo ˈɣus.to]", translation: "My name is Carlos, nice to meet you." },
+            { text: "¿De dónde eres?", phonetic: "[de ˈðon.de ˈe.ɾes]", translation: "Where are you from?" },
+          ],
+          starterPrompt: "¡Hola maestro! Me gustaría practicar cómo presentarme y hacer presentaciones básicas.",
+          estimatedMinutes: 10,
+        },
+        {
+          id: "es-1-2",
+          stepNumber: 2,
+          title: "Step 2: Ser vs. Estar (The Core Distinction)",
+          summary: "Unlock the fundamental secret of permanent qualities vs. temporary states.",
+          grammarFocus: "Ser (identity, origin, traits) vs. Estar (location, mood, condition)",
+          keyPhrases: [
+            { text: "Soy de México, pero estoy en Madrid.", phonetic: "[soi̯ de ˈme.xi.ko ˈpe.ɾo es.ˈtoi̯ en ma.ˈðɾið]", translation: "I am from Mexico, but I am in Madrid." },
+            { text: "El café está muy caliente.", phonetic: "[el ka.ˈfe es.ˈta mwi ka.ˈljen.te]", translation: "The coffee is very hot." },
+          ],
+          starterPrompt: "¿Puedes explicarme con ejemplos sencillos cuándo usar 'ser' y cuándo usar 'estar'?",
+          estimatedMinutes: 15,
+        },
+        {
+          id: "es-1-3",
+          stepNumber: 3,
+          title: "Step 3: Numbers, Time & Daily Essentials",
+          summary: "Learn numbers 1-100, asking for prices, telling time, and essential survival phrases.",
+          grammarFocus: "¿Cuánto cuesta? + Telling the time with son las / es la",
+          keyPhrases: [
+            { text: "¿Cuánto cuesta este billete?", phonetic: "[ˈkwan.to ˈkwes.ta ˈes.te bi.ˈʎe.te]", translation: "How much does this ticket cost?" },
+            { text: "Son las tres y media.", phonetic: "[son las tɾes i ˈme.ðja]", translation: "It is three thirty." },
+          ],
+          starterPrompt: "Vamos a practicar cómo preguntar la hora y los precios en una tienda.",
+          estimatedMinutes: 12,
+        },
+      ],
+    },
+    {
+      id: "es-mod-2",
+      level: "A2 - Elementary",
+      title: "Module 2: Practical Everyday Navigation",
+      description: "Ordering at restaurants, navigating a city, shopping, and describing daily routines.",
+      badge: "Town Explorer",
+      color: "from-blue-500 to-cyan-600",
+      lessons: [
+        {
+          id: "es-2-1",
+          stepNumber: 4,
+          title: "Step 4: At the Café & Tapas Bar",
+          summary: "Order food and drinks naturally, ask for the bill, and express dietary preferences.",
+          grammarFocus: "Polite requests (quisiera, me gustaría, ¿me trae...?)",
+          keyPhrases: [
+            { text: "Por favor, ¿me trae una tortilla y agua con gas?", phonetic: "[poɾ fa.ˈβoɾ me ˈtɾa.e ˈu.na toɾ.ˈti.ʎa]", translation: "Please, could you bring me a Spanish omelet and sparkling water?" },
+            { text: "La cuenta, por favor.", phonetic: "[la ˈkwen.ta poɾ fa.ˈβoɾ]", translation: "The bill, please." },
+          ],
+          starterPrompt: "Imaginemos que estamos en un restaurante en Sevilla. Quiero pedir el menú del día.",
+          estimatedMinutes: 15,
+        },
+        {
+          id: "es-2-2",
+          stepNumber: 5,
+          title: "Step 5: City Directions & Transit",
+          summary: "Asking for and understanding directions, taking the metro, and buying transit tickets.",
+          grammarFocus: "Imperatives for directions (gira a la derecha, sigue todo recto)",
+          keyPhrases: [
+            { text: "¿Dónde está la estación de metro más cercana?", phonetic: "[ˈdon.de es.ˈta la es.ta.ˈsjon de ˈme.tɾo]", translation: "Where is the closest metro station?" },
+            { text: "Siga todo recto y doble en la segunda esquina.", phonetic: "[ˈsi.ɣa ˈto.ðo ˈrek.to i ˈdo.βle en la se.ˈɣun.da]", translation: "Go straight ahead and turn at the second corner." },
+          ],
+          starterPrompt: "Estoy perdido en Barcelona y necesito llegar a la Sagrada Familia. ¿Puedes orientarme?",
+          estimatedMinutes: 15,
+        },
+      ],
+    },
+    {
+      id: "es-mod-3",
+      level: "B1 - Intermediate",
+      title: "Module 3: Conversational Fluency & Storytelling",
+      description: "Moving into real-world fluency: past tenses (pretérito vs imperfecto) and sharing stories.",
+      badge: "Fluent Voyager",
+      color: "from-emerald-500 to-teal-600",
+      lessons: [
+        {
+          id: "es-3-1",
+          stepNumber: 6,
+          title: "Step 6: Sharing Past Adventures (Pretérito vs. Imperfecto)",
+          summary: "The definitive guide to narrating completed actions vs ongoing background states.",
+          grammarFocus: "Pretérito indefinido vs. Pretérito imperfecto",
+          keyPhrases: [
+            { text: "Ayer fui a la playa porque hacía mucho sol.", phonetic: "[a.ˈʝeɾ fwi a la ˈpla.ʝa poɾ.ˈke a.ˈsi.a ˈmu.tʃo sol]", translation: "Yesterday I went to the beach because it was very sunny." },
+            { text: "Cuando era niño, vivía cerca del mar.", phonetic: "[ˈkwan.do ˈe.ɾa ˈni.ɲo bi.ˈβi.a ˈseɾ.ka ðel maɾ]", translation: "When I was a child, I used to live near the sea." },
+          ],
+          starterPrompt: "Quiero contarte lo que hice el fin de semana pasado para practicar el pretérito y el imperfecto.",
+          estimatedMinutes: 20,
+        },
+      ],
+    },
+    {
+      id: "es-mod-4",
+      level: "B2 - Advanced",
+      title: "Module 4: Subjunctive, Culture & Nuanced Debate",
+      description: "Master hypothetical thinking, emotion, doubt, and engaging in rich debates.",
+      badge: "Master Speaker",
+      color: "from-purple-500 to-indigo-600",
+      lessons: [
+        {
+          id: "es-4-1",
+          stepNumber: 7,
+          title: "Step 7: The Subjunctive Mood (Desires & Doubts)",
+          summary: "Learn how to express wishes, recommendations, and hypotheses with the subjunctive.",
+          grammarFocus: "Presente de subjuntivo with WEIRDO triggers",
+          keyPhrases: [
+            { text: "Espero que tengas un buen viaje.", phonetic: "[es.ˈpe.ɾo ke ˈteŋ.ɡas um bwen ˈbja.xe]", translation: "I hope you have a great trip." },
+            { text: "No creo que sea la mejor solución.", phonetic: "[no ˈkɾe.o ke ˈse.a la me.ˈxoɾ so.lu.ˈsjon]", translation: "I don't think that is the best solution." },
+          ],
+          starterPrompt: "Debatamos sobre las ventajas del trabajo remoto usando el modo subjuntivo.",
+          estimatedMinutes: 20,
+        },
+      ],
+    },
+  ],
+  French: [
+    {
+      id: "fr-mod-1",
+      level: "A1 - Beginner",
+      title: "Module 1: French Foundations & Pure Sounds",
+      description: "Essential greetings, nasal vowels, polite formalities (vous vs tu), and survival expressions.",
+      badge: "Premiers Pas",
+      color: "from-blue-500 to-indigo-600",
+      lessons: [
+        {
+          id: "fr-1-1",
+          stepNumber: 1,
+          title: "Step 1: Greetings & The 'Bonjour' Etiquette",
+          summary: "Master polite French greetings, introducing yourself, and the social importance of 'bonjour'.",
+          grammarFocus: "S'appeler + Être & Avoir basics",
+          keyPhrases: [
+            { text: "Bonjour ! Comment vous appelez-vous ?", phonetic: "[bɔ̃.ʒuʁ kɔ.mɑ̃ vu.za.ple vu]", translation: "Hello! What is your name?" },
+            { text: "Je m'appelle Sophie, enchantée.", phonetic: "[ʒə ma.pɛl sɔ.fi ɑ̃.ʃɑ̃.te]", translation: "My name is Sophie, delighted to meet you." },
+          ],
+          starterPrompt: "Bonjour ! J'aimerais pratiquer les présentations et les salutations polies.",
+          estimatedMinutes: 10,
+        },
+      ],
+    },
+  ],
+  Japanese: [
+    {
+      id: "ja-mod-1",
+      level: "A1 - Beginner",
+      title: "Module 1: Hiragana, Mora Beats & First Greetings",
+      description: "Foundations of Japanese pronunciation, bow culture, and core sentence structures.",
+      badge: "Hajime",
+      color: "from-rose-500 to-red-600",
+      lessons: [
+        {
+          id: "ja-1-1",
+          stepNumber: 1,
+          title: "Step 1: First Greetings (Aisatsu) & Desu / Masu",
+          summary: "Learn essential polite greetings and basic self-introductions (jikoshoukai).",
+          grammarFocus: "X wa Y desu (X is Y) + particle wa (は)",
+          keyPhrases: [
+            { text: "はじめまして、よろしくお願いします。", phonetic: "[Hajimemashite, yoroshiku onegaishimasu]", translation: "Nice to meet you, please treat me well." },
+            { text: "私は学生です。", phonetic: "[Watashi wa gakusei desu]", translation: "I am a student." },
+          ],
+          starterPrompt: "こんにちは！自己紹介の練習をしたいです。",
+          estimatedMinutes: 12,
+        },
+      ],
+    },
+  ],
+  German: [
+    {
+      id: "de-mod-1",
+      level: "A1 - Beginner",
+      title: "Module 1: German Phonetics & Word Order",
+      description: "Master German alphabet sounds, umlauts (ä, ö, ü), and basic sentence structures.",
+      badge: "Erste Schritte",
+      color: "from-amber-600 to-stone-700",
+      lessons: [
+        {
+          id: "de-1-1",
+          stepNumber: 1,
+          title: "Step 1: Introductions & The German Alphabet",
+          summary: "Learn how to introduce yourself and spell words with crisp German phonetics.",
+          grammarFocus: "Verb 'sein' & regular verb conjugation (ich -e, du -st, er -t)",
+          keyPhrases: [
+            { text: "Guten Tag! Wie heißen Sie?", phonetic: "[ˈɡuː.tn̩ taːk viː ˈhaɪ̯.sn̩ ziː]", translation: "Good day! What is your name?" },
+            { text: "Ich heiße Thomas. Freut mich!", phonetic: "[ɪç ˈhaɪ̯.sə ˈtoː.mas fʁɔɪ̯t mɪç]", translation: "My name is Thomas. Pleased to meet you!" },
+          ],
+          starterPrompt: "Hallo! Ich möchte mich auf Deutsch vorstellen.",
+          estimatedMinutes: 12,
+        },
+      ],
+    },
+  ],
+  Mandarin: [
+    {
+      id: "zh-mod-1",
+      level: "A1 - Beginner",
+      title: "Module 1: Pinyin, 4 Tones & Core Greetings",
+      description: "Build strong tonal foundations before speaking full sentences.",
+      badge: "Pinyin Master",
+      color: "from-red-500 to-amber-500",
+      lessons: [
+        {
+          id: "zh-1-1",
+          stepNumber: 1,
+          title: "Step 1: Hello & Basic Inquiries",
+          summary: "Master Nǐ hǎo, asking 'How are you?' (Nǐ hǎo ma?), and the neutral tone.",
+          grammarFocus: "The question particle 'ma' (吗) + subject-verb structure",
+          keyPhrases: [
+            { text: "你好！你好吗？", phonetic: "[Nǐ hǎo! Nǐ hǎo ma?]", translation: "Hello! How are you?" },
+            { text: "我很好，谢谢！", phonetic: "[Wǒ hěn hǎo, xièxie!]", translation: "I am very good, thank you!" },
+          ],
+          starterPrompt: "你好！我想练习基础问候和拼音声调。",
+          estimatedMinutes: 12,
+        },
+      ],
+    },
+  ],
+  English: [
+    {
+      id: "en-mod-1",
+      level: "A1 - Beginner",
+      title: "Module 1: Conversational Confidence & Everyday English",
+      description: "Master natural conversational rhythms, question structures, and small talk.",
+      badge: "Quick Starter",
+      color: "from-emerald-500 to-teal-600",
+      lessons: [
+        {
+          id: "en-1-1",
+          stepNumber: 1,
+          title: "Step 1: Small Talk & Conversational Openers",
+          summary: "Start casual conversations with native confidence and smooth linking.",
+          grammarFocus: "Present simple questions + short answer etiquette",
+          keyPhrases: [
+            { text: "Hi there! How's your day going?", phonetic: "[haɪ ðɛr! haʊz jʊər deɪ ˈɡoʊɪŋ]", translation: "Friendly casual opening" },
+            { text: "Pretty good, thanks! What about you?", phonetic: "[ˈprɪti ɡʊd θæŋks! wʌt əˈbaʊt juː]", translation: "Natural follow-up bounce" },
+          ],
+          starterPrompt: "Hello! I would like to practice natural small talk openers.",
+          estimatedMinutes: 10,
+        },
+      ],
+    },
+  ],
+};

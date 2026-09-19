@@ -11,6 +11,7 @@ import {
   limit,
   getDocs,
   serverTimestamp,
+  onSnapshot,
 } from "firebase/firestore";
 import {
   signInWithPopup,
@@ -23,7 +24,15 @@ import {
   User as FirebaseUser,
 } from "firebase/auth";
 import { auth, db, googleProvider } from "./firebase";
-import { UserProfile, ChatMessage, PronunciationEvaluation, TargetLanguage, ProficiencyLevel, LearningGoal } from "../types";
+import {
+  UserProfile,
+  ChatMessage,
+  PronunciationEvaluation,
+  TargetLanguage,
+  ProficiencyLevel,
+  LearningGoal,
+  TeachingModuleProgress,
+} from "../types";
 
 export interface UserStats {
   sessionsCompleted: number;
@@ -233,7 +242,13 @@ export async function deleteCurrentUserData(userId?: string): Promise<void> {
         await deleteDoc(d.ref);
       }
 
-      // 3. Delete user document
+      // 3. Delete curriculum progress
+      const currSnap = await getDocs(collection(db, "users", uid, "curriculumProgress"));
+      for (const d of currSnap.docs) {
+        await deleteDoc(d.ref);
+      }
+
+      // 4. Delete user document
       await deleteDoc(doc(db, "users", uid));
     } catch (err) {
       console.warn("Error deleting Firestore documents:", err);
@@ -244,7 +259,7 @@ export async function deleteCurrentUserData(userId?: string): Promise<void> {
   localStorage.removeItem("maestro_user_profile");
   localStorage.removeItem("maestro_chat_history");
 
-  // 4. Delete Firebase Auth user if active
+  // 5. Delete Firebase Auth user if active
   if (currentFbUser) {
     try {
       await deleteFirebaseUser(currentFbUser);
@@ -252,6 +267,96 @@ export async function deleteCurrentUserData(userId?: string): Promise<void> {
       console.warn("Could not delete Firebase Auth user directly (may require re-auth):", authErr);
       await signOut(auth);
     }
+  }
+}
+
+// 10. Save User Curriculum Progress to Firestore
+export async function saveUserCurriculumProgress(
+  userId: string,
+  progress: Omit<TeachingModuleProgress, "updatedAt">
+): Promise<void> {
+  // Always cache locally as offline fallback
+  try {
+    localStorage.setItem(
+      `maestro_progress_${progress.targetLanguage}`,
+      JSON.stringify({ ...progress, updatedAt: new Date().toISOString() })
+    );
+  } catch {}
+
+  if (!userId) return;
+
+  try {
+    const progressDocRef = doc(db, "users", userId, "curriculumProgress", progress.targetLanguage);
+    await setDoc(
+      progressDocRef,
+      {
+        ...progress,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  } catch (err) {
+    console.warn(`Could not sync curriculum progress to Firestore for ${progress.targetLanguage}:`, err);
+  }
+}
+
+// 11. Fetch User Curriculum Progress from Firestore
+export async function fetchUserCurriculumProgress(
+  userId: string,
+  targetLanguage: TargetLanguage
+): Promise<TeachingModuleProgress | null> {
+  // Try Firestore first if userId exists
+  if (userId) {
+    try {
+      const progressDocRef = doc(db, "users", userId, "curriculumProgress", targetLanguage);
+      const snap = await getDoc(progressDocRef);
+      if (snap.exists()) {
+        return snap.data() as TeachingModuleProgress;
+      }
+    } catch (err) {
+      console.warn(`Could not read curriculum progress from Firestore for ${targetLanguage}:`, err);
+    }
+  }
+
+  // Fallback to local storage cache
+  try {
+    const cached = localStorage.getItem(`maestro_progress_${targetLanguage}`);
+    if (cached) {
+      return JSON.parse(cached) as TeachingModuleProgress;
+    }
+  } catch {}
+
+  return null;
+}
+
+// 12. Subscribe to real-time curriculum progress updates
+export function subscribeUserCurriculumProgress(
+  userId: string,
+  targetLanguage: TargetLanguage,
+  callback: (progress: TeachingModuleProgress | null) => void
+): () => void {
+  if (!userId) {
+    // Return empty unsubscribe
+    return () => {};
+  }
+
+  try {
+    const progressDocRef = doc(db, "users", userId, "curriculumProgress", targetLanguage);
+    return onSnapshot(
+      progressDocRef,
+      (docSnap) => {
+        if (docSnap.exists()) {
+          callback(docSnap.data() as TeachingModuleProgress);
+        } else {
+          callback(null);
+        }
+      },
+      (err) => {
+        console.warn("Curriculum progress subscription error:", err);
+      }
+    );
+  } catch {
+    return () => {};
   }
 }
 

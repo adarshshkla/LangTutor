@@ -106,3 +106,18 @@ export interface UserProfile {
   createdAt: string;
 }
 
+export interface TeachingModuleProgress {
+  userId: string;
+  targetLanguage: TargetLanguage;
+  completedLessonIds: string[];
+  currentModuleId: string;
+  currentLessonId: string;
+  currentLessonTitle: string;
+  currentTopicId?: string;
+  progressPercentage: number;
+  completedCount: number;
+  totalLessons: number;
+  lastActiveDate: string;
+  updatedAt?: any;
+}
+

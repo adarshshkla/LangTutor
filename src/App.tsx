@@ -16,12 +16,14 @@ import {
   ChevronDown,
   Trash2,
 } from "lucide-react";
-import { Dashboard } from "./components/Dashboard";
-import { TutorCanvas } from "./components/TutorCanvas";
-import { ConversationPanel } from "./components/ConversationPanel";
-import { SmartWhiteboard } from "./components/SmartWhiteboard";
-import { PronunciationTrainer } from "./components/PronunciationTrainer";
-import { AuthOnboardingModal } from "./components/AuthOnboardingModal";
+import { Dashboard } from "./features/dashboard";
+import { TutorCanvas } from "./features/avatar";
+import { ConversationPanel } from "./features/conversation";
+import { SmartWhiteboard } from "./features/smartboard";
+import { PronunciationSuite } from "./features/pronunciation";
+import { StepByStepCurriculum } from "./features/curriculum";
+import { AuthOnboardingModal } from "./features/auth";
+import { AudioDiagnosticsModal } from "./components/AudioDiagnosticsModal";
 import { speechCtrl } from "./components/SpeechController";
 import {
   LANGUAGE_CONFIGS,
@@ -37,6 +39,7 @@ import {
   TutorResponse,
   VocabularyItem,
   UserProfile,
+  TeachingModuleProgress,
 } from "./types";
 import { auth } from "./lib/firebase";
 import { onAuthStateChanged } from "firebase/auth";
@@ -47,6 +50,7 @@ import {
   savePronunciationAttempt,
   signOutUser,
   deleteCurrentUserData,
+  subscribeUserCurriculumProgress,
 } from "./lib/userDataService";
 
 export function App() {
@@ -100,6 +104,21 @@ export function App() {
   );
   const [activeTab, setActiveTab] = useState<"dashboard" | "stage" | "pronunciation" | "curriculum">("dashboard");
   const [selectedTopicId, setSelectedTopicId] = useState<string>("es-cafe");
+  const [isDiagnosticsOpen, setIsDiagnosticsOpen] = useState<boolean>(false);
+  const [curriculumProgress, setCurriculumProgress] = useState<TeachingModuleProgress | null>(null);
+  const [audioErrorToast, setAudioErrorToast] = useState<string | null>(null);
+
+  // Subscribe to real-time curriculum progress for active user & language
+  useEffect(() => {
+    const unsub = subscribeUserCurriculumProgress(
+      userProfile?.id || "",
+      targetLanguage,
+      (data) => {
+        setCurriculumProgress(data);
+      }
+    );
+    return () => unsub();
+  }, [userProfile?.id, targetLanguage]);
 
   // 3D Avatar State
   const [currentGesture, setCurrentGesture] = useState<GestureType>("welcoming");
@@ -291,12 +310,13 @@ export function App() {
   };
 
   // Real-time Mic Listening for Chat
-  const handleStartListening = () => {
+  const handleStartListening = async () => {
     setIsListening(true);
     setCurrentGesture("listening");
     setInterimTranscript("");
+    setAudioErrorToast(null);
 
-    speechCtrl.startListening(
+    const supported = await speechCtrl.startListening(
       langConfig.defaultVoiceLang,
       (transcript, isFinal) => {
         setInterimTranscript(transcript);
@@ -309,11 +329,17 @@ export function App() {
       (err) => {
         console.warn("Speech recognition error:", err);
         setIsListening(false);
+        setAudioErrorToast(err);
       },
       () => {
         setIsListening(false);
       }
     );
+
+    if (!supported) {
+      setIsListening(false);
+      setAudioErrorToast("Microphone input or speech recognition is blocked by your browser. Click 'Audio & Mic Test' to resolve.");
+    }
   };
 
   const handleStopListening = () => {
@@ -507,6 +533,18 @@ export function App() {
             </select>
           </div>
 
+          {/* Audio & Mic Test Diagnostic Button */}
+          <button
+            id="btn-sound-mic-diagnostic"
+            onClick={() => setIsDiagnosticsOpen(true)}
+            className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
+            title="Test audio speakers and microphone hardware"
+          >
+            <Volume2 className="w-3.5 h-3.5 text-blue-400" />
+            <Mic className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="hidden md:inline">Audio & Mic Test</span>
+          </button>
+
           {/* Stop Audio Button */}
           {isSpeaking && (
             <button
@@ -525,6 +563,30 @@ export function App() {
           )}
         </div>
       </header>
+
+      {/* Audio / Mic Warning Banner */}
+      {audioErrorToast && (
+        <div className="bg-amber-950/80 border-b border-amber-800/80 px-4 py-2 flex items-center justify-between text-xs text-amber-200 shrink-0">
+          <div className="flex items-center gap-2">
+            <Mic className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>{audioErrorToast}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsDiagnosticsOpen(true)}
+              className="px-2.5 py-1 rounded-lg bg-amber-800/60 hover:bg-amber-700 text-amber-100 font-semibold text-[11px] cursor-pointer"
+            >
+              Open Audio Diagnostics
+            </button>
+            <button
+              onClick={() => setAudioErrorToast(null)}
+              className="text-amber-400 hover:text-amber-200 text-xs cursor-pointer ml-1"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Navigation Sub-bar */}
       <div className="px-5 py-2.5 bg-slate-900/40 border-b border-slate-800/60 flex items-center justify-between text-xs shrink-0">
@@ -582,46 +644,51 @@ export function App() {
           </button>
         </div>
 
-        {/* Quick Gesture Trigger Testing Toolbar */}
-        <div className="hidden lg:flex items-center gap-1 text-[11px] text-slate-400">
-          <span className="font-semibold text-slate-500 mr-1">Gesture Demo:</span>
-          {(["explaining", "welcoming", "praising", "pointing", "thinking", "encouraging"] as GestureType[]).map(
-            (gesture) => (
-              <button
-                key={gesture}
-                onClick={() => {
-                  setCurrentGesture(gesture);
-                  speakWithAvatar(
-                    gesture === "praising"
-                      ? "¡Muy bien! ¡Excelente trabajo!"
-                      : gesture === "pointing"
-                      ? "Mira aquí en la pizarra los puntos clave."
-                      : gesture === "thinking"
-                      ? "Mmm... vamos a pensar en esta regla gramatical."
-                      : "Aquí te explico los detalles.",
-                    gesture
-                  );
-                }}
-                className={`px-2 py-0.5 rounded-lg border transition-colors capitalize ${
-                  currentGesture === gesture
-                    ? "bg-blue-500/20 text-blue-300 border-blue-500/40 font-medium"
-                    : "bg-slate-800/60 text-slate-400 border-slate-700/50 hover:text-slate-200"
-                }`}
-              >
-                {gesture}
-              </button>
-            )
-          )}
-        </div>
+        {/* Quick Gesture Trigger Testing Toolbar (Stage tab only) */}
+        {activeTab === "stage" && (
+          <div className="hidden lg:flex items-center gap-1 text-[11px] text-slate-400">
+            <span className="font-semibold text-slate-500 mr-1">Gesture Demo:</span>
+            {(["explaining", "welcoming", "praising", "pointing", "thinking", "encouraging"] as GestureType[]).map(
+              (gesture) => (
+                <button
+                  key={gesture}
+                  onClick={() => {
+                    setCurrentGesture(gesture);
+                    speakWithAvatar(
+                      gesture === "praising"
+                        ? "¡Muy bien! ¡Excelente trabajo!"
+                        : gesture === "pointing"
+                        ? "Mira aquí en la pizarra los puntos clave."
+                        : gesture === "thinking"
+                        ? "Mmm... vamos a pensar en esta regla gramatical."
+                        : "Aquí te explico los detalles.",
+                      gesture
+                    );
+                  }}
+                  className={`px-2 py-0.5 rounded-lg border transition-colors capitalize cursor-pointer ${
+                    currentGesture === gesture
+                      ? "bg-blue-500/20 text-blue-300 border-blue-500/40 font-medium"
+                      : "bg-slate-800/60 text-slate-400 border-slate-700/50 hover:text-slate-200"
+                  }`}
+                >
+                  {gesture}
+                </button>
+              )
+            )}
+          </div>
+        )}
       </div>
 
       {/* Main Workspace Layout */}
-      {activeTab === "dashboard" ? (
+      {activeTab === "dashboard" && (
         <main className="flex-1 overflow-hidden">
           <Dashboard
             targetLanguage={targetLanguage}
             proficiencyLevel={proficiencyLevel}
             userProfile={userProfile}
+            curriculumProgress={curriculumProgress}
+            onOpenDiagnostics={() => setIsDiagnosticsOpen(true)}
+            onResumeLesson={() => setActiveTab("curriculum")}
             onOpenOnboarding={(step) => {
               setOnboardingForcedStep(step || 2);
               setIsOnboardingOpen(true);
@@ -666,49 +733,51 @@ export function App() {
             }}
           />
         </main>
-      ) : (
+      )}
+
+      {/* 3D Classroom Stage (Stage Tab ONLY) */}
+      {activeTab === "stage" && (
         <main className="flex-1 overflow-hidden p-4 grid grid-cols-1 lg:grid-cols-12 gap-4">
-        {/* LEFT COLUMN: 3D Tutor Avatar Canvas (Prominent & Always Visible) */}
-        <div className="lg:col-span-6 xl:col-span-7 flex flex-col h-full gap-3 min-h-[360px]">
-          {/* 3D Canvas Box */}
-          <div className="flex-1 relative rounded-2xl overflow-hidden shadow-2xl border border-slate-800">
-            <TutorCanvas
-              currentGesture={currentGesture}
-              isSpeaking={isSpeaking}
-              isListening={isListening}
-              viseme={viseme}
-              boardNotes={boardNotes}
-              activeWord={activeWord}
-              activePhonetic={activePhonetic}
-            />
-          </div>
-
-          {/* Active Lesson Topic Bar */}
-          <div className="px-4 py-2.5 rounded-xl bg-slate-900/70 border border-slate-800/90 flex items-center justify-between text-xs backdrop-blur-md shrink-0">
-            <div className="flex items-center gap-2">
-              <span className="text-blue-400 font-bold uppercase tracking-wider text-[10px]">
-                Active Topic:
-              </span>
-              <span className="font-semibold text-slate-100">
-                {currentTopic?.title || "Conversational Practice"}
-              </span>
+          {/* LEFT COLUMN: 3D Tutor Avatar Canvas (Stage only) */}
+          <div className="lg:col-span-6 xl:col-span-7 flex flex-col h-full gap-3 min-h-[360px]">
+            {/* 3D Canvas Box */}
+            <div className="flex-1 relative rounded-2xl overflow-hidden shadow-2xl border border-slate-800">
+              <TutorCanvas
+                currentGesture={currentGesture}
+                isSpeaking={isSpeaking}
+                isListening={isListening}
+                viseme={viseme}
+                boardNotes={boardNotes}
+                activeWord={activeWord}
+                activePhonetic={activePhonetic}
+              />
             </div>
-            <button
-              onClick={() => {
-                if (currentTopic) {
-                  handleSendMessage(currentTopic.starterPrompt);
-                }
-              }}
-              className="text-xs text-blue-400 hover:text-blue-300 font-semibold flex items-center gap-1"
-            >
-              <span>Ask Topic Starter</span> →
-            </button>
-          </div>
-        </div>
 
-        {/* RIGHT COLUMN: Tab Content (Conversation / Pronunciation / Curriculum + Smartboard) */}
-        <div className="lg:col-span-6 xl:col-span-5 flex flex-col h-full overflow-hidden">
-          {activeTab === "stage" && (
+            {/* Active Lesson Topic Bar */}
+            <div className="px-4 py-2.5 rounded-xl bg-slate-900/70 border border-slate-800/90 flex items-center justify-between text-xs backdrop-blur-md shrink-0">
+              <div className="flex items-center gap-2">
+                <span className="text-blue-400 font-bold uppercase tracking-wider text-[10px]">
+                  Active Topic:
+                </span>
+                <span className="font-semibold text-slate-100">
+                  {currentTopic?.title || "Conversational Practice"}
+                </span>
+              </div>
+              <button
+                onClick={() => {
+                  if (currentTopic) {
+                    handleSendMessage(currentTopic.starterPrompt);
+                  }
+                }}
+                className="text-xs text-blue-400 hover:text-blue-300 font-semibold flex items-center gap-1 cursor-pointer"
+              >
+                <span>Ask Topic Starter</span> →
+              </button>
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN: Conversation Panel & Smart Whiteboard */}
+          <div className="lg:col-span-6 xl:col-span-5 flex flex-col h-full overflow-hidden">
             <div className="grid grid-rows-2 h-full gap-4 overflow-hidden">
               {/* Top: Live Conversation Panel */}
               <div className="row-span-1 overflow-hidden">
@@ -743,97 +812,61 @@ export function App() {
                 />
               </div>
             </div>
-          )}
-
-          {activeTab === "pronunciation" && (
-            <div className="h-full overflow-y-auto flex flex-col gap-4">
-              <PronunciationTrainer
-                targetLanguage={targetLanguage}
-                langCode={langConfig.defaultVoiceLang}
-                userId={userProfile?.id}
-                practiceSentences={
-                  currentTopic?.practiceSentences || [
-                    "¡Buenos días! ¿Cómo estás hoy?",
-                    "Me gustaría practicar mi pronunciación.",
-                  ]
-                }
-                onTriggerGesture={(g) => setCurrentGesture(g)}
-                onSpeakText={(text) => speakWithAvatar(text, "praising")}
-              />
-
-              {/* Whiteboard overview under pronunciation */}
-              <div className="flex-1">
-                <SmartWhiteboard
-                  boardNotes={boardNotes}
-                  vocabularySpotlight={vocabularySpotlight}
-                  grammarFeedback={grammarFeedback}
-                  pronunciationTip={pronunciationTip}
-                  onPlayWordAudio={(word) => speakWithAvatar(word, "pointing")}
-                  onSelectWordForTutor={(word) =>
-                    handleSendMessage(`¿Cómo se pronuncia "${word}" con el acento correcto?`)
-                  }
-                />
-              </div>
-            </div>
-          )}
-
-          {activeTab === "curriculum" && (
-            <div className="h-full overflow-y-auto pr-1 flex flex-col gap-3">
-              <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 backdrop-blur-md">
-                <h3 className="font-bold text-sm text-slate-100 mb-1 flex items-center gap-2">
-                  <BookOpen className="w-4 h-4 text-blue-400" />
-                  <span>Curriculum & Scenario Library ({targetLanguage})</span>
-                </h3>
-                <p className="text-xs text-slate-400 mb-3">
-                  Select a targeted scenario to load specialized vocabulary, grammar goals, and conversational practice.
-                </p>
-
-                <div className="space-y-2.5">
-                  {availableTopics.map((topic) => (
-                    <div
-                      key={topic.id}
-                      onClick={() => {
-                        setSelectedTopicId(topic.id);
-                        setActiveTab("stage");
-                        handleSendMessage(topic.starterPrompt);
-                      }}
-                      className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
-                        selectedTopicId === topic.id
-                          ? "bg-blue-950/40 border-blue-500/60 shadow-lg shadow-blue-500/10"
-                          : "bg-slate-800/50 hover:bg-slate-800 border-slate-700/50"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-bold text-sm text-slate-100">
-                          {topic.title}
-                        </span>
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded uppercase tracking-wider bg-slate-700/60 text-slate-300">
-                          {topic.category}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-400 mb-2 leading-relaxed">
-                        {topic.description}
-                      </p>
-
-                      <div className="flex flex-wrap gap-1.5">
-                        {topic.targetVocab.map((vocab, vIdx) => (
-                          <span
-                            key={vIdx}
-                            className="px-2 py-0.5 rounded text-[10px] bg-slate-900/80 text-cyan-300 border border-slate-800 font-mono"
-                          >
-                            {vocab}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </main>
+          </div>
+        </main>
       )}
+
+      {/* Dedicated Pronunciation & Accent Studio (NO 3D model, pure 2D anatomical mouth & step-by-step accent coach) */}
+      {activeTab === "pronunciation" && (
+        <main className="flex-1 overflow-hidden p-4">
+          <PronunciationSuite
+            targetLanguage={targetLanguage}
+            langCode={langConfig.defaultVoiceLang}
+            nativeLanguage={userProfile?.nativeLanguage || "English"}
+            userId={userProfile?.id}
+            practiceSentences={
+              currentTopic?.practiceSentences || [
+                "¡Buenos días! ¿Cómo estás hoy?",
+                "Me gustaría practicar mi pronunciación.",
+              ]
+            }
+            onTriggerGesture={(g) => setCurrentGesture(g)}
+            onSpeakText={(text) => speechCtrl.speak(text, langConfig.defaultVoiceLang)}
+          />
+        </main>
+      )}
+
+      {/* Dedicated Step-by-Step Curriculum & Scenarios (Full Width, Progressive Modules from Basic to Mastery) */}
+      {activeTab === "curriculum" && (
+        <main className="flex-1 overflow-hidden p-4">
+          <StepByStepCurriculum
+            targetLanguage={targetLanguage}
+            nativeLanguage={userProfile?.nativeLanguage || "English"}
+            userId={userProfile?.id}
+            currentTopicId={selectedTopicId}
+            onSelectTopic={(topicId, starterPrompt, lessonTitle) => {
+              setSelectedTopicId(topicId);
+              setActiveTab("stage");
+              if (lessonTitle) {
+                setBoardNotes([
+                  `Module Topic: ${lessonTitle}`,
+                  `Practice conversational dialogue with your 3D tutor.`,
+                  `Click the mic or speak freely to begin.`,
+                ]);
+              }
+              handleSendMessage(starterPrompt);
+            }}
+            onSpeakPhrase={(text) => speechCtrl.speak(text, langConfig.defaultVoiceLang)}
+          />
+        </main>
+      )}
+
+      {/* Audio & Microphone Self-Test Diagnostic Modal */}
+      <AudioDiagnosticsModal
+        isOpen={isDiagnosticsOpen}
+        onClose={() => setIsDiagnosticsOpen(false)}
+        targetLanguage={targetLanguage}
+      />
 
       {/* User Onboarding & Language Intake Consultation Modal */}
       <AuthOnboardingModal
