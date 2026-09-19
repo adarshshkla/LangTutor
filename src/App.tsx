@@ -385,6 +385,14 @@ export function App() {
         ? "Hallo! Ich bin dein 3D-Sprachtutor. Lass uns gemeinsam Deutsch lernen!"
         : targetLanguage === "Mandarin"
         ? "你好！我是你的3D中文导师。今天你想练习什么？"
+        : targetLanguage === "Hindi"
+        ? "नमस्ते! मैं आपका 3D भाषा शिक्षक हूँ। क्या आप अभ्यास के लिए तैयार हैं?"
+        : targetLanguage === "Kannada"
+        ? "ನಮಸ್ಕಾರ! ನಾನು ನಿಮ್ಮ 3D ಭಾಷಾ ಶಿಕ್ಷಕ. ಅಭ್ಯಾಸ ಮಾಡಲು ಸಿದ್ಧರಿದ್ದೀರಾ?"
+        : targetLanguage === "Gujarati"
+        ? "નમસ્તે! હું તમારો 3D ભાષા શિક્ષક છું. શું તમે પ્રેક્ટિસ કરવા માટે તૈયાર છો?"
+        : targetLanguage === "Telugu"
+        ? "నమస్కారం! నేను మీ 3D భాషా ఉపాధ్యాయుడిని. ఈ రోజు సాధన చేయడానికి సిద్ధంగా ఉన్నారా?"
         : "Hello! I am your 3D language tutor. Ready to practice speaking today?";
 
     setMessages([
