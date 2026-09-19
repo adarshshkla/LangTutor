@@ -1,17 +1,17 @@
 import express from "express";
 import path from "path";
 import dotenv from "dotenv";
-import Anthropic from "@anthropic-ai/sdk";
+import Groq from "groq-sdk";
 import { createServer as createViteServer } from "vite";
 
 dotenv.config();
 
-let aiClient: Anthropic | null = null;
+let aiClient: Groq | null = null;
 
-function getAI(): Anthropic | null {
-  if (!aiClient && process.env.ANTHROPIC_API_KEY) {
-    aiClient = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
+function getAI(): Groq | null {
+  if (!aiClient && process.env.GROQ_API_KEY) {
+    aiClient = new Groq({
+      apiKey: process.env.GROQ_API_KEY,
     });
   }
   return aiClient;
@@ -27,7 +27,7 @@ async function startServer() {
   app.get("/api/health", (_req, res) => {
     res.json({
       status: "ok",
-      hasApiKey: Boolean(process.env.ANTHROPIC_API_KEY),
+      hasApiKey: Boolean(process.env.GROQ_API_KEY),
       timestamp: new Date().toISOString(),
     });
   });
@@ -146,7 +146,8 @@ RESPOND STRICTLY WITH A JSON OBJECT EXACTLY MATCHING THIS STRUCTURE:
   ],
   "pronunciationTip": "string tip",
   "suggestedReplies": ["reply 1", "reply 2"]
-}`;
+}
+If there is no grammar mistake, set "grammarFeedback" to null. Ensure the output is a valid JSON object.`;
 
       const formattedHistory = Array.isArray(history)
         ? history
@@ -157,20 +158,18 @@ RESPOND STRICTLY WITH A JSON OBJECT EXACTLY MATCHING THIS STRUCTURE:
 
       const prompt = `${formattedHistory ? `Recent Conversation:\n${formattedHistory}\n\n` : ""}Student said: "${message}"`;
 
-      // @ts-ignore - The response.content[0].text is guaranteed for text blocks
-      const response = await ai.messages.create({
-        model: "claude-3-5-sonnet-20241022",
-        system: systemInstruction,
+      const response = await ai.chat.completions.create({
+        model: "llama-3.3-70b-versatile",
         messages: [
-          { role: "user", content: prompt },
-          { role: "assistant", content: "{" }
+          { role: "system", content: systemInstruction },
+          { role: "user", content: prompt }
         ],
+        response_format: { type: "json_object" },
         max_tokens: 1500,
         temperature: 0.7,
       });
 
-      const rawText = "{" + (response.content[0] as any).text;
-      
+      const rawText = response.choices[0]?.message?.content || "{}";
       const parsed = JSON.parse(rawText);
       return res.json(parsed);
     } catch (error) {
@@ -218,22 +217,23 @@ RESPOND STRICTLY WITH A JSON OBJECT EXACTLY MATCHING THIS STRUCTURE:
     { "word": "word", "ipa": "ipa", "status": "good|needs-work|accent-tip" }
   ],
   "encouragement": "Keep practicing!"
-}`;
+}
+Ensure the output is a valid JSON object.`;
 
       const prompt = `Target sentence to pronounce: "${expectedText}"\nRecognized speech transcript: "${transcribedText}"`;
 
-      const response = await ai.messages.create({
-        model: "claude-3-5-sonnet-20241022",
-        system: systemInstruction,
+      const response = await ai.chat.completions.create({
+        model: "llama-3.3-70b-versatile",
         messages: [
-          { role: "user", content: prompt },
-          { role: "assistant", content: "{" }
+          { role: "system", content: systemInstruction },
+          { role: "user", content: prompt }
         ],
+        response_format: { type: "json_object" },
         max_tokens: 1000,
         temperature: 0.2,
       });
 
-      const raw = "{" + (response.content[0] as any).text;
+      const raw = response.choices[0]?.message?.content || "{}";
       return res.json(JSON.parse(raw));
     } catch (error) {
       console.error("Error in /api/tutor/evaluate-speech:", error);
