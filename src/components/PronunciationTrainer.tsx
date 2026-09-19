@@ -16,14 +16,23 @@ interface PronunciationTrainerProps {
   onSpeakText: (text: string) => void;
 }
 
+const DEFAULT_PRACTICE_SENTENCES: Record<TargetLanguage, string[]> = {
+  English: ["Hello! How are you today?", "I would like to practice my pronunciation."],
+  Spanish: ["¡Hola! ¿Cómo estás hoy?", "Me gustaría practicar mi pronunciación."],
+  French: ["Bonjour ! Comment allez-vous aujourd'hui ?", "Je voudrais pratiquer ma prononciation."],
+  German: ["Hallo! Wie geht es dir heute?", "Ich möchte meine Aussprache üben."],
+  Japanese: ["こんにちは！今日はお元気ですか？", "日本語の発音を練習したいです。"],
+  Mandarin: ["你好！你今天怎么样？", "我想练习我的发音。"],
+  Hindi: ["नमस्ते! आज आप कैसे हैं?", "मैं अपने उच्चारण का अभ्यास करना चाहता हूँ।"],
+  Kannada: ["ನಮಸ್ಕಾರ! ನೀವು ಹೇಗಿದ್ದೀರಿ?", "ನಾನು ನನ್ನ ಉಚ್ಚಾರಣೆಯನ್ನು ಅಭ್ಯಾಸ ಮಾಡಲು ಬಯಸುತ್ತೇನೆ."],
+  Gujarati: ["નમસ્તે! તમે કેમ છો?", "મારે મારા ઉચ્ચારણનો અભ્યાસ કરવો છે."],
+  Telugu: ["నమస్కారం! మీరు ఎలా ఉన్నారు?", "నేను నా ఉచ్చారణను సాధన చేయాలనుకుంటున్నాను."],
+};
+
 export const PronunciationTrainer: React.FC<PronunciationTrainerProps> = ({
   targetLanguage,
   langCode,
-  practiceSentences = [
-    "¡Buenos días! ¿Cómo estás hoy?",
-    "Me gustaría practicar mi pronunciación.",
-    "El rápido zorro marrón salta sobre el perro perezoso.",
-  ],
+  practiceSentences,
   userId,
   onTriggerGesture,
   onSpeakText,
@@ -35,7 +44,10 @@ export const PronunciationTrainer: React.FC<PronunciationTrainerProps> = ({
   const [result, setResult] = useState<PronunciationEvaluation | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const activeSentence = practiceSentences[selectedSentenceIndex] || "¡Hola mundo!";
+  const availableSentences = practiceSentences?.length
+    ? practiceSentences
+    : DEFAULT_PRACTICE_SENTENCES[targetLanguage];
+  const activeSentence = availableSentences[selectedSentenceIndex] || availableSentences[0];
 
   const handleStartSpeaking = async () => {
     setErrorMsg(null);
@@ -192,7 +204,7 @@ export const PronunciationTrainer: React.FC<PronunciationTrainerProps> = ({
           <span>Pronunciation & Accent Studio</span>
         </div>
         <span className="text-xs text-slate-400">
-          Sentence {selectedSentenceIndex + 1} of {practiceSentences.length}
+          Sentence {selectedSentenceIndex + 1} of {availableSentences.length}
         </span>
       </div>
 
@@ -225,7 +237,7 @@ export const PronunciationTrainer: React.FC<PronunciationTrainerProps> = ({
 
       {/* Sentence selector chips */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-        {practiceSentences.map((s, idx) => (
+        {availableSentences.map((s, idx) => (
           <button
             key={idx}
             onClick={() => {

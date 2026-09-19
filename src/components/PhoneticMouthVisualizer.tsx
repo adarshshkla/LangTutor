@@ -21,6 +21,19 @@ interface ShapeGuide {
   diagramColor: string;
 }
 
+const SOUND_LABELS: Record<TargetLanguage, Partial<Record<MouthShape, string>>> = {
+  English: { A: "A", E: "E", I: "I", O: "O", U: "U", R: "R", F: "F", M: "M", L: "L" },
+  Spanish: { A: "A", E: "E", I: "I", O: "O", U: "U", R: "R", F: "F", M: "M", L: "L" },
+  French: { A: "A", E: "E", I: "I", O: "O", U: "U", R: "R", F: "F", M: "M", L: "L" },
+  German: { A: "A", E: "E", I: "I", O: "O", U: "U", R: "R", F: "F", M: "M", L: "L" },
+  Japanese: { A: "あ", E: "え", I: "い", O: "お", U: "う", R: "ら", F: "ふ", M: "ま", L: "ら" },
+  Mandarin: { A: "ā", E: "ē", I: "ī", O: "ō", U: "ū", R: "r", F: "f", M: "m", L: "l" },
+  Hindi: { A: "अ", E: "ए", I: "इ", O: "ओ", U: "उ", R: "र", F: "फ", M: "म", L: "ल" },
+  Kannada: { A: "ಅ", E: "ಎ", I: "ಇ", O: "ಒ", U: "ಉ", R: "ರ", F: "ಫ", M: "ಮ", L: "ಲ" },
+  Gujarati: { A: "અ", E: "એ", I: "ઇ", O: "ઓ", U: "ઉ", R: "ર", F: "ફ", M: "મ", L: "લ" },
+  Telugu: { A: "అ", E: "ఎ", I: "ఇ", O: "ఒ", U: "ఉ", R: "ర", F: "ఫ", M: "మ", L: "ల" },
+};
+
 const MOUTH_GUIDES: Record<MouthShape, ShapeGuide> = {
   A: {
     shape: "A",
@@ -162,6 +175,7 @@ export const PhoneticMouthVisualizer: React.FC<PhoneticMouthVisualizerProps> = (
   }, [isAnimatingCycle]);
 
   const guide = MOUTH_GUIDES[selectedShape] || MOUTH_GUIDES.A;
+  const soundLabels = SOUND_LABELS[targetLanguage];
 
   // Render pure SVG diagram for Front and Profile views of mouth, tongue, and airflow
   const renderFrontMouthSVG = (shape: MouthShape) => {
@@ -540,7 +554,7 @@ export const PhoneticMouthVisualizer: React.FC<PhoneticMouthVisualizerProps> = (
                 : "bg-slate-800 hover:bg-slate-700 text-slate-300"
             }`}
           >
-            /{shape}/
+            /{soundLabels[shape] || shape}/
           </button>
         ))}
       </div>
